@@ -89,5 +89,129 @@
     ],
     "language": "Go",
     "type": "repository"
+  },
+  {
+    "id": "anthropics-claude-code",
+    "name": "claude-code",
+    "url": "https://github.com/anthropics/claude-code",
+    "category": "Automation",
+    "description": "Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows - all through natural language commands.",
+    "tags": [],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "anthropics-skills",
+    "name": "skills",
+    "url": "https://github.com/anthropics/skills",
+    "category": "AI & Machine Learning",
+    "description": "Public repository for Agent Skills",
+    "tags": [
+      "agent-skills"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "anthropics-claude-plugins-official",
+    "name": "claude-plugins-official",
+    "url": "https://github.com/anthropics/claude-plugins-official",
+    "category": "Claude",
+    "description": "Official, Anthropic-managed directory of high quality Claude Code Plugins.",
+    "tags": [
+      "claude-code",
+      "mcp",
+      "skills"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "obra-superpowers",
+    "name": "superpowers",
+    "url": "https://github.com/obra/superpowers",
+    "category": "AI & Machine Learning",
+    "description": "An agentic skills framework & software development methodology that works.",
+    "tags": [
+      "ai",
+      "brainstorming",
+      "coding",
+      "obra",
+      "sdlc",
+      "skills"
+    ],
+    "language": "Shell",
+    "type": "repository"
+  },
+  {
+    "id": "anthropics-claude-cookbooks",
+    "name": "claude-cookbooks",
+    "url": "https://github.com/anthropics/claude-cookbooks",
+    "category": "Claude",
+    "description": "A collection of notebooks/recipes showcasing some fun and effective ways of using Claude.",
+    "tags": [],
+    "language": "Jupyter Notebook",
+    "type": "repository"
+  },
+  {
+    "id": "anthropics-claude-code-action",
+    "name": "claude-code-action",
+    "url": "https://github.com/anthropics/claude-code-action",
+    "category": "Claude",
+    "description": "anthropics/claude-code-action",
+    "tags": [],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "hesreallyhim-awesome-claude-code",
+    "name": "awesome-claude-code",
+    "url": "https://github.com/hesreallyhim/awesome-claude-code",
+    "category": "AI & Machine Learning",
+    "description": "A hand-picked collection of the finest of resources for the most awesome of agents, Claude Code, the undisputed champion of coding companions, from the unstoppable team at Anthropic PBC (no affiliation). A delectable showcase of top tier skills, ambidextrous agents, scintillating status lines, top notch developer tooling, and also we have plugins",
+    "tags": [
+      "agent-skills",
+      "agentic-code",
+      "agentic-coding",
+      "ai-workflow-optimization",
+      "ai-workflows",
+      "anthropic"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "github-github-mcp-server",
+    "name": "github-mcp-server",
+    "url": "https://github.com/github/github-mcp-server",
+    "category": "MCP",
+    "description": "GitHub's official MCP Server",
+    "tags": [
+      "github",
+      "mcp",
+      "mcp-server"
+    ],
+    "language": "Go",
+    "type": "repository"
+  },
+  {
+    "id": "anthropics-claude-quickstarts",
+    "name": "claude-quickstarts",
+    "url": "https://github.com/anthropics/claude-quickstarts",
+    "category": "Claude",
+    "description": "A collection of projects designed to help developers quickly get started with building deployable applications using the Claude API",
+    "tags": [],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "anthropics-claude-agent-sdk-python",
+    "name": "claude-agent-sdk-python",
+    "url": "https://github.com/anthropics/claude-agent-sdk-python",
+    "category": "AI & Machine Learning",
+    "description": "anthropics/claude-agent-sdk-python",
+    "tags": [],
+    "language": "Python",
+    "type": "repository"
   }
 ]
