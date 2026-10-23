@@ -1,0 +1,14 @@
+name = "ai-github-resource-hub"
+main = "worker/index.js"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[vars]
+OWNER_LOGIN = "vakulkumarmore"
+REPO_NAME = "ai-github-resource-hub"
+# CLIENT_ID is the GitHub OAuth App client ID (not a secret).
+CLIENT_ID = "REPLACE_WITH_OAUTH_CLIENT_ID"
+# Set CLIENT_SECRET and SESSION_SECRET with: npx wrangler secret put NAME
