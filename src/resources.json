@@ -1,0 +1,9 @@
+[
+  {"id":"microsoft-powertoys","name":"Microsoft PowerToys","url":"https://github.com/microsoft/PowerToys","category":"Developer Tools","description":"Windows utilities for productivity and customization.","tags":["Windows","Productivity"],"language":"C#","type":"repository"},
+  {"id":"microsoft-vscode","name":"Visual Studio Code","url":"https://github.com/microsoft/vscode","category":"Developer Tools","description":"Open-source code editor with a rich extension ecosystem.","tags":["Editor","TypeScript"],"language":"TypeScript","type":"repository"},
+  {"id":"microsoft-power-fx","name":"Power Fx","url":"https://github.com/microsoft/Power-Fx","category":"Automation","description":"Open-source formula language used across Microsoft Power Platform.","tags":["Power Platform","Low Code"],"language":"C#","type":"repository"},
+  {"id":"langchain-ai-langchain","name":"LangChain","url":"https://github.com/langchain-ai/langchain","category":"AI & Machine Learning","description":"Framework for building applications powered by language models.","tags":["LLM","AI"],"language":"Python","type":"repository"},
+  {"id":"facebook-react","name":"React","url":"https://github.com/facebook/react","category":"Web Development","description":"Library for building component-based user interfaces.","tags":["Frontend","JavaScript"],"language":"JavaScript","type":"repository"},
+  {"id":"apache-superset","name":"Apache Superset","url":"https://github.com/apache/superset","category":"Data & Analytics","description":"Open-source data exploration and visualization platform.","tags":["BI","Dashboard"],"language":"Python","type":"repository"},
+  {"id":"hashicorp-terraform","name":"Terraform","url":"https://github.com/hashicorp/terraform","category":"Security & DevOps","description":"Infrastructure as code for provisioning and managing resources.","tags":["IaC","Cloud"],"language":"Go","type":"repository"}
+]
