@@ -148,5 +148,332 @@
     "tags": [],
     "language": "Python",
     "type": "repository"
+  },
+  {
+    "id": "1jehuang-jcode",
+    "name": "jcode",
+    "url": "https://github.com/1jehuang/jcode",
+    "category": "AI & Machine Learning",
+    "description": "High performance coding agent harness written in Rust, built for heavy multi-agent dev workflows",
+    "tags": [
+      "ai",
+      "ai-agent",
+      "ai-coding-agent",
+      "claude",
+      "cli",
+      "coding-agent"
+    ],
+    "language": "Rust",
+    "type": "repository"
+  },
+  {
+    "id": "d4vinci-scrapling",
+    "name": "Scrapling",
+    "url": "https://github.com/D4Vinci/Scrapling",
+    "category": "AI & Machine Learning",
+    "description": "🕷️ A Web Scraping framework that handles everything from a single request to a full-scale crawl! Don't be shy, join here: https://discord.gg/EMgGbDceNQ and follow here for daily tips and tricks: https://x.com/Scrapling_dev",
+    "tags": [
+      "ai",
+      "ai-scraping",
+      "automation",
+      "crawler",
+      "crawling",
+      "crawling-python"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "dannymac180-sol-advisor",
+    "name": "sol-advisor",
+    "url": "https://github.com/DannyMac180/sol-advisor",
+    "category": "Uncategorized",
+    "description": "Codex-native architect orchestration with Luna and Terra implementation lanes and mandatory fresh Sol review.",
+    "tags": [],
+    "language": "Shell",
+    "type": "repository"
+  },
+  {
+    "id": "graphify-labs-graphify",
+    "name": "graphify",
+    "url": "https://github.com/Graphify-Labs/graphify",
+    "category": "AI & Machine Learning",
+    "description": "Turn any codebase, with its docs, SQL schemas, configs, and PDFs, into a queryable knowledge graph. A /graphify skill for Claude Code, Cursor, Codex, and Gemini CLI: local deterministic AST parsing, every edge explained, no vector store.",
+    "tags": [
+      "ai-agents",
+      "antigravity",
+      "ast",
+      "claude-code",
+      "code-analysis",
+      "code-search"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "jaycheng113-skill-retrieval-mcp",
+    "name": "skill-retrieval-mcp",
+    "url": "https://github.com/JayCheng113/skill-retrieval-mcp",
+    "category": "Uncategorized",
+    "description": "JayCheng113/skill-retrieval-mcp",
+    "tags": [],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "traderalice-openalice",
+    "name": "OpenAlice",
+    "url": "https://github.com/TraderAlice/OpenAlice",
+    "category": "AI & Machine Learning",
+    "description": "Your one-person Wall Street. An AI trading agent covering equities, crypto, commodities, forex, and macro — from research through position entry, ongoing management, to exit.",
+    "tags": [
+      "AI"
+    ],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "abi-screenshot-to-code",
+    "name": "screenshot-to-code",
+    "url": "https://github.com/abi/screenshot-to-code",
+    "category": "Web Development",
+    "description": "Drop in a screenshot and convert it to clean code (HTML/Tailwind/React/Vue)",
+    "tags": [],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "asgeirtj-system_prompts_leaks",
+    "name": "system_prompts_leaks",
+    "url": "https://github.com/asgeirtj/system_prompts_leaks",
+    "category": "AI & Machine Learning",
+    "description": "Documented system prompts from Anthropic - Claude Fable 5.1, Opus 5.5, Claude Design, Claude Code. OpenAI - ChatGPT GPT-6-Astra, Codex. Google - Gemini 3.8 Flash, 3.1 Pro, Antigravity. xAI - Grok, Grok Bot, Cursor, Kimi and more! Updated regularly.",
+    "tags": [
+      "ai",
+      "ai-agents",
+      "ai-prompts",
+      "anthropic",
+      "chatbot",
+      "chatgpt"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "blader-humanizer",
+    "name": "humanizer",
+    "url": "https://github.com/blader/humanizer",
+    "category": "AI & Machine Learning",
+    "description": "Agent skill that removes signs of AI-generated writing from text",
+    "tags": [
+      "agent-skills",
+      "ai-humanizer",
+      "ai-writing",
+      "chatgpt",
+      "claude",
+      "claude-code"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "diegosouzapw-omniroute",
+    "name": "OmniRoute",
+    "url": "https://github.com/diegosouzapw/OmniRoute",
+    "category": "AI & Machine Learning",
+    "description": "Never stop coding. Free MIT AI gateway: one endpoint, 375 providers (150+ free), 1,400+ models Kimi, Claude, GPT, Gemini, GLM, DeepSeek, MiniMax. Works with Claude Code, Codex, Cursor, OpenCode, Cline & Copilot. Quota-aware auto-fallback, RTK+Caveman compression saves 15-95% tokens, MCP/A2A, Desktop/PWA. Built by 900+ contributors",
+    "tags": [
+      "a2a",
+      "ai-agents",
+      "ai-gateway",
+      "anthropic",
+      "claude",
+      "claude-code"
+    ],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "emilkowalski-skills",
+    "name": "skills",
+    "url": "https://github.com/emilkowalski/skills",
+    "category": "Uncategorized",
+    "description": "Skills for Designers and Engineers.",
+    "tags": [],
+    "language": "Markdown",
+    "type": "repository"
+  },
+  {
+    "id": "gitroomhq-postiz-app",
+    "name": "postiz-app",
+    "url": "https://github.com/gitroomhq/postiz-app",
+    "category": "Web Development",
+    "description": "📨 The ultimate agentic social media scheduling tool 🤖",
+    "tags": [
+      "nextjs",
+      "open-source",
+      "open-source-social-media-scheduling-tool",
+      "oss",
+      "postiz-cloud",
+      "postiz-hosted"
+    ],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "headroomlabs-ai-headroom",
+    "name": "headroom",
+    "url": "https://github.com/headroomlabs-ai/headroom",
+    "category": "AI & Machine Learning",
+    "description": "Compress tool outputs, logs, files, and RAG chunks before they reach the LLM. 20% fewer tokens for coding agents, 60-95% fewer tokens for JSON, same answers. Library, proxy, MCP server.",
+    "tags": [
+      "agent",
+      "ai",
+      "anthropic",
+      "claude-code",
+      "compression",
+      "context-engineering"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "mathiaschu-watch",
+    "name": "watch",
+    "url": "https://github.com/mathiaschu/watch",
+    "category": "Uncategorized",
+    "description": "Give Claude a video input. /watch downloads from YouTube/Instagram/X/Vimeo/any yt-dlp site, extracts frames, and transcribes locally with mlx-whisper — no API key. Fork of bradautomates/claude-video.",
+    "tags": [
+      "claude",
+      "claude-code",
+      "claude-skill",
+      "mlx",
+      "transcription",
+      "video"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "microsoft-power-platform-skills",
+    "name": "power-platform-skills",
+    "url": "https://github.com/microsoft/power-platform-skills",
+    "category": "AI & Machine Learning",
+    "description": "A plugin marketplace for GitHub Copilot and other AI agents that provides Power Platform development plugins, including reusable skills, agents, and commands for building and deploying solutions.",
+    "tags": [
+      "claude-code-plugin",
+      "claude-code-skills",
+      "code-apps",
+      "github-copilot-plugin",
+      "power-apps",
+      "power-pages"
+    ],
+    "language": "JavaScript",
+    "type": "repository"
+  },
+  {
+    "id": "modelcontextprotocol-servers",
+    "name": "servers",
+    "url": "https://github.com/modelcontextprotocol/servers",
+    "category": "AI & Machine Learning",
+    "description": "Model Context Protocol Servers",
+    "tags": [],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "mukul975-anthropic-cybersecurity-skills",
+    "name": "Anthropic-Cybersecurity-Skills",
+    "url": "https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
+    "category": "AI & Machine Learning",
+    "description": "817 structured cybersecurity skills for AI agents · Mapped to 6 frameworks: MITRE ATT&CK, NIST CSF 2.0, MITRE ATLAS, D3FEND, NIST AI RMF & MITRE F3 (Fight Fraud) · agentskills.io standard · Works with Claude Code, GitHub Copilot, Codex CLI, Cursor, Gemini CLI & 20+ platforms · 29 security domains · Apache 2.0",
+    "tags": [
+      "ai-agents",
+      "claude-code",
+      "cloud-security",
+      "cybersecurity",
+      "devsecops",
+      "ethical-hacking"
+    ],
+    "language": "Python",
+    "type": "repository"
+  },
+  {
+    "id": "multica-ai-andrej-karpathy-skills",
+    "name": "andrej-karpathy-skills",
+    "url": "https://github.com/multica-ai/andrej-karpathy-skills",
+    "category": "AI & Machine Learning",
+    "description": "A single CLAUDE.md file to improve Claude Code behavior, derived from Andrej Karpathy's observations on LLM coding pitfalls.",
+    "tags": [],
+    "language": "",
+    "type": "repository"
+  },
+  {
+    "id": "mshumer-claude-of-duty",
+    "name": "Claude-of-Duty",
+    "url": "https://github.com/mshumer/Claude-of-Duty",
+    "category": "Uncategorized",
+    "description": "A Call of Duty-quality FPS in Three.js, built from a single prompt.",
+    "tags": [],
+    "language": "JavaScript",
+    "type": "repository"
+  },
+  {
+    "id": "openai-codex-plugin-cc",
+    "name": "codex-plugin-cc",
+    "url": "https://github.com/openai/codex-plugin-cc",
+    "category": "AI & Machine Learning",
+    "description": "Use Codex from Claude Code to review code or delegate tasks.",
+    "tags": [],
+    "language": "JavaScript",
+    "type": "repository"
+  },
+  {
+    "id": "ruvnet-ruflo",
+    "name": "ruflo",
+    "url": "https://github.com/ruvnet/ruflo",
+    "category": "AI & Machine Learning",
+    "description": "🌊 The original agent harness. Deploy intelligent multi-player swarms, coordinate autonomous workflows, and build conversational AI systems. Features adaptive memory, self-learning intelligence, federation, vector RAG integration, and native Claude Code / Codex / Hermes and many more Integrated",
+    "tags": [
+      "agentic-ai",
+      "agentic-framework",
+      "agentic-workflow",
+      "agents",
+      "ai-agents",
+      "ai-assistant"
+    ],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "truefoundry-trueforge",
+    "name": "trueforge",
+    "url": "https://github.com/truefoundry/trueforge",
+    "category": "AI & Machine Learning",
+    "description": "The open-source agent harness - the runtime layer that turns an LLM into a working agent.",
+    "tags": [
+      "agent",
+      "agentic-ai",
+      "agents",
+      "harness",
+      "harness-engineering"
+    ],
+    "language": "TypeScript",
+    "type": "repository"
+  },
+  {
+    "id": "upstash-context7",
+    "name": "context7",
+    "url": "https://github.com/upstash/context7",
+    "category": "AI & Machine Learning",
+    "description": "Context7 Platform -- Up-to-date docs for AI agents",
+    "tags": [
+      "llm",
+      "mcp",
+      "mcp-server",
+      "vibe-coding"
+    ],
+    "language": "TypeScript",
+    "type": "repository"
   }
 ]
