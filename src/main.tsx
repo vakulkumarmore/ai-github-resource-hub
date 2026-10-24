@@ -1,31 +1,124 @@
-import React,{useEffect,useMemo,useState} from 'react';
-import {createRoot} from 'react-dom/client';
-import {Github,Search,ExternalLink,Star,Heart,Sun,Moon,ArrowUpDown,Code2,Sparkles,Layers,GitFork,Clock,ArrowRight,ShieldCheck,Menu} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ArrowDownAZ, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, FilterX, Github, Grid2X2, Heart, LayoutList, LoaderCircle, Menu, Moon, Search, Shield, SlidersHorizontal, Sparkles, Star, Sun, X } from 'lucide-react';
 import resources from './resources.json';
-import type {Resource} from './Importer';
-import Importer from './Importer';
+import { fetchMetadata, resourceKey, type Resource } from './Importer';
 import Admin from './Admin';
 import './style.css';
-const initialCatalog:Resource[]=resources;
-const norm=(url:string)=>url.toLowerCase().replace(/\/$/,'');
-function RepoCard({r,favorite,toggle}:{r:Resource;favorite:boolean;toggle:(id:string)=>void}){
- const [meta,setMeta]=useState<{stargazers_count?:number;forks_count?:number;pushed_at?:string;language?:string}|null>(null);
- useEffect(()=>{const m=r.url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)$/i);if(!m)return;const key='ghmeta:'+norm(r.url);try{const cached=JSON.parse(sessionStorage.getItem(key)||'null');if(cached&&Date.now()-cached.time<3600000){setMeta(cached.data);return}}catch{}let live=true;fetch('https://api.github.com/repos/'+encodeURIComponent(m[1])+'/'+encodeURIComponent(m[2]),{headers:{Accept:'application/vnd.github+json'}}).then(x=>x.ok?x.json():null).then(data=>{if(data&&live){setMeta(data);try{sessionStorage.setItem(key,JSON.stringify({time:Date.now(),data}))}catch{}}}).catch(()=>{});return()=>{live=false}},[r.url]);
- return <article className="resource"><div className="cardtop"><div className="repoicon"><Github size={21}/></div><button className={'heart '+(favorite?'on':'')} onClick={()=>toggle(r.id)} aria-label={favorite?'Remove favorite':'Add favorite'}><Heart size={19} fill={favorite?'currentColor':'none'}/></button></div><span className="category">{r.category}</span><h3>{r.name}</h3><p>{r.description||'Explore this open-source GitHub resource.'}</p><div className="tags">{r.tags.slice(0,4).map(t=><span key={t}>{t}</span>)}</div><div className="repo-meta"><span><Code2 size={13}/>{meta?.language||r.language||'Various'}</span>{typeof meta?.stargazers_count==='number'&&<span title="GitHub stars"><Star size={13}/>{Intl.NumberFormat('en',{notation:'compact'}).format(meta.stargazers_count)}</span>}{typeof meta?.forks_count==='number'&&<span title="Forks"><GitFork size={13}/>{Intl.NumberFormat('en',{notation:'compact'}).format(meta.forks_count)}</span>}{meta?.pushed_at&&<span title="Last pushed"><Clock size={13}/>{new Date(meta.pushed_at).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</span>}</div><div className="cardbottom"><span className="language">{r.type==='profile'?'Developer profile':'GitHub repository'}</span><a href={r.url} target="_blank" rel="noopener noreferrer">Explore <ExternalLink size={15}/></a></div></article>
+
+type Sort = 'featured' | 'name' | 'category' | 'stars';
+type View = 'list' | 'grid';
+const initialCatalog = resources as Resource[];
+const pageSize = 24;
+const number = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}k` : String(n);
+const names = (url: string) => { const parts = new URL(url).pathname.split('/').filter(Boolean); return { owner: parts[0] || 'GitHub', repo: parts[1] || '' }; };
+const readJson = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) as T : fallback; } catch { return fallback; } };
+function App() {
+  const [published, setPublished] = useState<Resource[]>(initialCatalog);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [screen, setScreen] = useState<'library' | 'admin'>('library');
+  const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All resources');
+  const [sort, setSort] = useState<Sort>('featured');
+  const [view, setView] = useState<View>(() => readJson<View>('ai-hub-view', 'list'));
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>(() => readJson('resource-hub-favorites', []));
+  const [page, setPage] = useState(1);
+  const [mobileFilters, setMobileFilters] = useState(false);
+  const [stats, setStats] = useState<Record<string, Partial<Resource>>>(() => readJson('ai-hub-metadata-cache', {}));
+  const [statsBusy, setStatsBusy] = useState(false);
+  const [statsNote, setStatsNote] = useState('');
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === '#admin' || hash.startsWith('#admin/')) setScreen('admin');
+    const onHash = () => setScreen(window.location.hash.startsWith('#admin') ? 'admin' : 'library');
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  useEffect(() => {
+    fetch('/api/catalog').then(r => {
+      if (!r.ok) throw new Error('Cannot reach live catalog');
+      return r.json();
+    }).then(data => { if (Array.isArray(data)) setPublished(data); }).catch(() => {}).finally(() => setCatalogLoading(false));
+  }, []);
+  useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('ai-hub-dark-mode', JSON.stringify(dark)); }, [dark]);
+  useEffect(() => { localStorage.setItem('ai-hub-view', JSON.stringify(view)); }, [view]);
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    published.forEach(r => counts.set(r.category || 'Uncategorized', (counts.get(r.category || 'Uncategorized') || 0) + 1));
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [published]);
+  const catalog = useMemo(() => published.map(r => { const meta = stats[resourceKey(r.url)]; return meta ? { ...r, stars: meta.stars ?? r.stars, forks: meta.forks ?? r.forks, updatedAt: meta.updatedAt ?? r.updatedAt } : r; }), [published, stats]);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return catalog.filter(r => {
+      if (category !== 'All resources' && r.category !== category) return false;
+      if (favoritesOnly && !(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))) return false;
+      if (!q) return true;
+      return [r.name, r.url, r.description, r.category, r.language || '', ...(r.tags || [])].join(' ').toLowerCase().includes(q);
+    }).sort((a, b) => {
+      if (sort === 'name') return a.name.localeCompare(b.name);
+      if (sort === 'category') return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
+      if (sort === 'stars') return (b.stars ?? -1) - (a.stars ?? -1) || a.name.localeCompare(b.name);
+      return 0;
+    });
+  }, [catalog, category, favoritesOnly, favorites, search, sort]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const chooseCategory = (value: string) => { setCategory(value); setPage(1); setMobileFilters(false); };
+  const chooseSearch = (value: string) => { setSearch(value); setPage(1); };
+  const toggleFavorite = (url: string) => {
+    const key = resourceKey(url);
+    setFavorites(old => { const next = old.includes(key) ? old.filter(x => x !== key) : [...old, key]; localStorage.setItem('resource-hub-favorites', JSON.stringify(next)); return next; });
+  };
+  const openAdmin = () => { setScreen('admin'); window.location.hash = 'admin'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const openLibrary = () => { setScreen('library'); window.history.replaceState(null, '', window.location.pathname); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const loadStats = async () => {
+    const candidates = visible.filter(r => r.type !== 'profile' && r.stars == null).slice(0, 10);
+    if (!candidates.length) { setStatsNote('GitHub statistics are already loaded for these visible repositories.'); return; }
+    setStatsBusy(true); setStatsNote(`Loading GitHub details for ${candidates.length} visible repositories...`);
+    let success = 0;
+    const updates: Record<string, Partial<Resource>> = {};
+    for (const r of candidates) {
+      try { const meta = await fetchMetadata(r); updates[resourceKey(r.url)] = { stars: meta.stars, forks: meta.forks, updatedAt: meta.updatedAt }; success++; } catch { break; }
+    }
+    setStats(old => { const next = { ...old, ...updates }; try { localStorage.setItem('ai-hub-metadata-cache', JSON.stringify(next)); } catch {} return next; });
+    setStatsNote(success < candidates.length ? `${success} updated. GitHub may be rate-limiting requests; try again later.` : `${success} repositories updated.`);
+    setStatsBusy(false);
+  };
+  const clearFilters = () => { chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); };
+  return <div className="site-shell">
+    <header className="site-header"><div className="header-inner">
+      <button className="site-logo" onClick={openLibrary} aria-label="Go to AI GitHub Resource Hub home"><span className="logo-mark"><Github size={22}/></span><span className="logo-text"><strong>AI GitHub</strong><span>RESOURCE HUB</span></span></button>
+      <nav className="header-nav" aria-label="Primary navigation"><button className={screen === 'library' ? 'active' : ''} onClick={openLibrary}>Explore</button><button className={screen === 'admin' ? 'active' : ''} onClick={openAdmin}>Admin workspace</button></nav>
+      <div className="header-actions"><span className="header-count">{published.length} resources</span><button className="icon-button" title={dark ? 'Switch to light theme' : 'Switch to dark theme'} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDark(!dark)}>{dark ? <Sun size={19}/> : <Moon size={19}/>}</button><button className="btn header-admin" onClick={openAdmin}><Shield size={16}/> Manage</button></div>
+    </div></header>
+
+    {screen === 'library' ? <main className="public-main">
+      <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> YOUR OPEN-SOURCE DISCOVERY SPACE</div><h1>Find the right GitHub resources, <span>faster.</span></h1><p>A carefully organized library of AI tools, Claude projects, automation, frameworks and developer resources. Everything worth bookmarking, all in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Curated links</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
+      <section className="browse-section" id="browse"><div className="browse-header"><div><span className="section-eyebrow">DISCOVER & EXPLORE</span><h2>Resource library</h2><p>Search the collection or browse by category.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} available resources`}</div></div>
+      <div className="explore-layout">
+        <aside className={`category-sidebar ${mobileFilters ? 'open' : ''}`}><div className="sidebar-heading"><span>Categories</span><button className="mobile-close" onClick={() => setMobileFilters(false)} aria-label="Close filters"><X size={19}/></button></div><div className="category-list"><button className={category === 'All resources' && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory('All resources'); setFavoritesOnly(false); }}><BookOpen size={17}/><span>All resources</span><em>{published.length}</em></button><button className={favoritesOnly ? 'selected' : ''} onClick={() => { setFavoritesOnly(true); setCategory('All resources'); setPage(1); setMobileFilters(false); }}><Heart size={17}/><span>My favorites</span><em>{favorites.length}</em></button></div><div className="sidebar-divider"/><div className="category-list">{categories.map(([name, count]) => <button key={name} className={category === name && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory(name); setFavoritesOnly(false); }}><span className="category-bullet"/><span title={name}>{name}</span><em>{count}</em></button>)}</div><div className="sidebar-note"><Sparkles size={17}/><strong>Made for discovery</strong><p>Save favorites and revisit them anytime on this device.</p></div></aside>
+        <div className="browse-main"><div className="search-toolbar"><label className="search-box"><Search size={20}/><input placeholder="Search projects, descriptions, tags..." value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label><button className="btn subtle mobile-filter-button" onClick={() => setMobileFilters(true)}><SlidersHorizontal size={17}/> Filters</button><div className="sort-wrap"><ArrowDownAZ size={17}/><select aria-label="Sort resources" value={sort} onChange={e => { setSort(e.target.value as Sort); setPage(1); }}><option value="featured">Recommended order</option><option value="name">Name A–Z</option><option value="category">Category</option><option value="stars">Most stars</option></select><ChevronDown size={15}/></div></div>
+          <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Load GitHub stats</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
+          {statsNote && <div className="stats-note" role="status">{statsNote} <button onClick={() => setStatsNote('')} aria-label="Dismiss message"><X size={14}/></button></div>}
+          <div className={`resource-results ${view === 'grid' ? 'grid-view' : 'list-view'}`}>{visible.map(r => <ResourceItem key={resourceKey(r.url)} resource={r} favorite={(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))} onToggle={() => toggleFavorite(r.url)} onTag={chooseSearch}/>)}</div>
+          {!filtered.length && <div className="empty-state"><FilterX size={33}/><h3>No resources found</h3><p>Try a different keyword or remove your filters.</p><button className="btn primary" onClick={clearFilters}>Clear all filters</button></div>}
+          {!!filtered.length && <div className="pagination"><span>Showing <strong>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of {filtered.length.toLocaleString()}</span><div><button className="btn subtle small" disabled={currentPage === 1} onClick={() => { setPage(p => p - 1); document.getElementById('browse')?.scrollIntoView(); }}><ArrowLeft size={15}/> Previous</button><span className="page-number">{currentPage} / {totalPages}</span><button className="btn subtle small" disabled={currentPage === totalPages} onClick={() => { setPage(p => p + 1); document.getElementById('browse')?.scrollIntoView(); }}>Next <ArrowRight size={15}/></button></div></div>}
+        </div>
+      </div></section>
+    </main> : catalogLoading ? <div className="workspace auth-message"><LoaderCircle className="spin"/> Loading published resources...</div> : <Admin publishedCatalog={published} onSaved={items => { setPublished(items); setCatalogLoading(false); }} onBack={openLibrary}/>}
+    <footer className="site-footer"><div><span className="footer-logo"><Github size={18}/> AI GitHub Resource Hub</span><span>Built for curious developers, makers and learners.</span></div><span>Curated resources · Powered by GitHub & Cloudflare</span></footer>
+  </div>;
 }
-function App(){
- const [extra,setExtra]=useState<Resource[]>([]),[remote,setRemote]=useState<Resource[]|null>(null);
- useEffect(()=>{fetch('/api/catalog').then(r=>{if(!r.ok)throw Error('Catalog unavailable');return r.json()}).then(d=>{if(Array.isArray(d))setRemote(d)}).catch(()=>{})},[]);
- const base=remote||initialCatalog;
- const catalog=useMemo(()=>[...base,...extra.filter(x=>!base.some(r=>norm(r.url)===norm(x.url)))],[base,extra]);
- const categories=useMemo(()=>['All Resources',...Array.from(new Set(catalog.map(r=>r.category))).sort()],[catalog]);
- const [search,setSearch]=useState(''),[category,setCategory]=useState('All Resources'),[sort,setSort]=useState('name'),[favoritesOnly,setFavoritesOnly]=useState(false),[limit,setLimit]=useState(12);
- const [theme,setTheme]=useState(()=>localStorage.getItem('hub-theme')||'dark');
- useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem('hub-theme',theme)},[theme]);
- const [favorites,setFavorites]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem('resource-hub-favorites')||'[]')}catch{return []}});
- const toggle=(id:string)=>setFavorites(old=>{const next=old.includes(id)?old.filter(x=>x!==id):[...old,id];localStorage.setItem('resource-hub-favorites',JSON.stringify(next));return next});
- const filtered=useMemo(()=>catalog.filter(r=>(category==='All Resources'||r.category===category)&&(!favoritesOnly||favorites.includes(r.id))&&[r.name,r.description,r.category,r.language||'',...(r.tags||[])].join(' ').toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sort==='category'?a.category.localeCompare(b.category)||a.name.localeCompare(b.name):a.name.localeCompare(b.name)),[catalog,category,search,sort,favoritesOnly,favorites]);
- useEffect(()=>setLimit(12),[search,category,sort,favoritesOnly]);
- return <div className="shell"><header className="topbar"><a className="brand" href="#home"><span className="brand-icon"><Sparkles size={23}/></span><span>AI <strong>GITHUB</strong> <small>RESOURCE HUB</small></span></a><nav className="navlinks"><a href="#explore">Explore</a><a href="#import">Bulk Import</a><a href="#admin">Admin</a></nav><div className="header-actions"><button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} aria-label="Toggle light and dark theme">{theme==='dark'?<Sun size={19}/>:<Moon size={19}/>}</button><a className="github-link" href="https://github.com/vakulkumarmore/ai-github-resource-hub" target="_blank" rel="noreferrer"><Github size={18}/><span>GitHub</span></a></div></header><main id="home"><section className="hero"><div className="hero-orb orb-one"/><div className="hero-orb orb-two"/><div className="hero-inner"><div className="eyebrow"><Sparkles size={14}/> YOUR OPEN-SOURCE DISCOVERY SPACE</div><h1>Discover what’s <span>possible with AI.</span></h1><p>One curated home for AI agents, Claude Code, MCP servers, automation, and remarkable GitHub projects. Find your next favorite tool.</p><a href="#explore" className="hero-cta">Explore resources <ArrowRight size={18}/></a><div className="stats"><div><strong>{catalog.length}</strong><span>Curated resources</span></div><div><strong>{categories.length-1}</strong><span>Categories</span></div><div><strong>{favorites.length}</strong><span>Saved favorites</span></div></div></div><div className="hero-art" aria-hidden="true"><div className="floating floating-a"><Sparkles size={26}/> AI Agents</div><div className="floating floating-b"><Code2 size={26}/> Developer Tools</div><div className="floating floating-c"><Layers size={26}/> MCP Servers</div><div className="hero-core"><Github size={75}/></div></div></section><section className="content" id="explore"><div className="sectionhead"><div><div className="overline">EXPLORE THE COLLECTION</div><h2>Find your next favorite tool <span>✦</span></h2><p>Handpicked GitHub projects, organized for curious builders.</p></div><span className="library-count">{catalog.length} resources</span></div><div className="toolbar"><label className="search"><Search size={19}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search projects, topics, languages..." aria-label="Search resources"/></label><label className="sort"><ArrowUpDown size={17}/><select aria-label="Sort resources" value={sort} onChange={e=>setSort(e.target.value)}><option value="name">Name A–Z</option><option value="category">Category</option></select></label></div><div className="filters"><div className="pills">{categories.map(c=><button key={c} className={'pill '+(category===c?'active':'')} onClick={()=>setCategory(c)}>{c}</button>)}</div><button className={'favoriteFilter '+(favoritesOnly?'selected':'')} onClick={()=>setFavoritesOnly(!favoritesOnly)}><Heart size={16} fill={favoritesOnly?'currentColor':'none'}/> Favorites</button></div><div className="results">Showing {Math.min(limit,filtered.length)} of {filtered.length} matching resources</div><div className="cards">{filtered.slice(0,limit).map(r=><RepoCard key={r.url} r={r} favorite={favorites.includes(r.id)} toggle={toggle}/>)}</div>{filtered.length>limit&&<div className="more-wrap"><button className="show-more" onClick={()=>setLimit(v=>v+12)}>Load more resources <ArrowRight size={17}/></button></div>}{filtered.length===0&&<div className="empty"><Layers size={30}/><h3>No resources found</h3><p>Try a different search or category.</p><button onClick={()=>{setSearch('');setCategory('All Resources');setFavoritesOnly(false)}}>Clear filters</button></div>}</section><div className="management-heading"><div className="overline">CURATE YOUR COLLECTION</div><h2>Resource management</h2><p>Import, review, and publish resources from one place.</p><div className="management-steps"><span>01 · Import</span><ArrowRight size={16}/><span>02 · Review</span><ArrowRight size={16}/><span>03 · Publish</span></div></div><Importer catalog={catalog} onApply={newItems=>setExtra(old=>[...old,...newItems.filter(r=>![...catalog,...old].some(x=>norm(x.url)===norm(r.url)))])}/><Admin catalog={catalog} onSaved={items=>{setRemote(items);setExtra([])}}/></main><footer><span><Sparkles size={17}/> AI GITHUB RESOURCE HUB</span><span><ShieldCheck size={15}/> Curated open-source discovery · Powered by Cloudflare Workers</span></footer></div>
+
+type ItemProps = { resource: Resource; favorite: boolean; onToggle: () => void; onTag: (tag: string) => void };
+function ResourceItem({ resource: r, favorite, onToggle, onTag }: ItemProps) {
+  const { owner, repo } = names(r.url);
+  return <article className="resource-item"><div className="item-top"><div className="resource-avatar"><Github size={20}/></div><div className="resource-details"><div className="resource-title-line"><a className="resource-name" href={r.url} target="_blank" rel="noopener noreferrer">{r.name}<ExternalLink size={15}/></a><span className="category-tag">{r.category}</span></div><div className="resource-path">{owner}{repo && <span> / {repo}</span>}</div><p className="resource-description">{r.description}</p><div className="resource-bottom"><div className="resource-tags">{(r.tags || []).slice(0, 4).map(tag => <button onClick={() => onTag(tag)} key={tag} title={`Search ${tag}`}>{tag}</button>)}</div><div className="resource-meta">{r.language && <span className="meta-lang"><span className="language-dot"/>{r.language}</span>}{typeof r.stars === 'number' && <span title="GitHub stars"><Star size={14}/>{number(r.stars)}</span>}{r.updatedAt && <span className="resource-updated" title={r.updatedAt}>Updated {new Date(r.updatedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}</div></div></div><div className="resource-quick"><button className={`favorite-toggle ${favorite ? 'is-favorite' : ''}`} onClick={onToggle} aria-label={favorite ? `Remove ${r.name} from favorites` : `Add ${r.name} to favorites`} title="Save to favorites"><Heart size={18} fill={favorite ? 'currentColor' : 'none'}/></button><a className="visit-button" href={r.url} target="_blank" rel="noopener noreferrer">GitHub <ArrowRight size={16}/></a></div></div></article>;
 }
+
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
