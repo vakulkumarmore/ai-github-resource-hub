@@ -5,13 +5,20 @@ export default function Admin({catalog,onSaved}:{catalog:Resource[];onSaved:(ite
  const [draft,setDraft]=useState<Resource[]>(catalog),[selected,setSelected]=useState<string[]>([]),[query,setQuery]=useState(''),[editing,setEditing]=useState<string|null>(null);
  const [snapshot,setSnapshot]=useState<Resource[]|null>(null),[dirty,setDirty]=useState(false);
  useEffect(()=>{fetch('/api/me').then(r=>r.json()).then(d=>setOwner(!!d.owner)).catch(()=>{}).finally(()=>setChecked(true))},[]);
- useEffect(()=>{if(!dirty){setDraft(catalog);setSelected([])}},[catalog,dirty]);
+ // Incoming imports must merge into an edited draft instead of being silently ignored.
+ useEffect(()=>{setDraft(current=>{
+   if(!dirty)return catalog;
+   const keys=new Set(current.map(r=>r.url.toLowerCase().replace(/\/$/,'')));
+   const incoming=catalog.filter(r=>!keys.has(r.url.toLowerCase().replace(/\/$/,'')));
+   return incoming.length?[...current,...incoming]:current;
+ });},[catalog]);
+ useEffect(()=>{if(dirty){try{sessionStorage.setItem('hub-draft-backup',JSON.stringify(draft))}catch{}}},[draft,dirty]);
  const filtered=useMemo(()=>draft.filter(r=>[r.name,r.url,r.category,r.description,...r.tags].join(' ').toLowerCase().includes(query.toLowerCase())),[draft,query]);
  const update=(url:string,patch:Partial<Resource>)=>{setDraft(old=>old.map(r=>r.url===url?{...r,...patch}:r));setDirty(true)};
  const remove=(urls:string[])=>{if(!urls.length)return;if(!confirm(`Remove ${urls.length} resource(s) from the draft? Nothing is published until Save Changes.`))return;setSnapshot(draft);setDraft(old=>old.filter(r=>!urls.includes(r.url)));setSelected([]);setDirty(true);setMessage(`${urls.length} removed from draft. Click Undo or Save Changes.`)};
  const undo=()=>{if(snapshot){setDraft(snapshot);setSnapshot(null);setDirty(true);setMessage('Last deletion undone.')}};
- const reset=()=>{if(!confirm('Discard all unpublished edits and deletions?'))return;setDraft(catalog);setDirty(false);setSelected([]);setSnapshot(null);setEditing(null);setMessage('Unpublished changes discarded.')};
- async function publish(){if(!confirm(`Publish ${draft.length} resources to GitHub? This replaces the public catalog and includes deletions.`))return;setBusy(true);setMessage('');try{const res=await fetch('/api/catalog',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(draft)});const data=await res.json();if(!res.ok)throw Error(data.error||'Publish failed');setMessage(data.message||'Saved to GitHub');onSaved(draft);setDirty(false);setSnapshot(null);setSelected([])}catch(e){setMessage(e instanceof Error?e.message:'Publish failed')}finally{setBusy(false)}}
+ const reset=()=>{if(!confirm('Discard all unpublished edits and deletions?'))return;setDraft(catalog);setDirty(false);setSelected([]);setSnapshot(null);setEditing(null);sessionStorage.removeItem('hub-draft-backup');setMessage('Unpublished changes discarded.')};
+ async function publish(){if(!confirm(`Publish ${draft.length} resources to GitHub? This replaces the public catalog and includes deletions.`))return;setBusy(true);setMessage('');try{const res=await fetch('/api/catalog',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(draft)});const data=await res.json();if(!res.ok)throw Error(data.error||'Publish failed');setMessage(data.message||'Saved to GitHub');sessionStorage.removeItem('hub-draft-backup');onSaved(draft);setDirty(false);setSnapshot(null);setSelected([])}catch(e){setMessage(e instanceof Error?e.message:'Publish failed')}finally{setBusy(false)}}
  const exportDraft=()=>{const blob=new Blob([JSON.stringify(draft,null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='resources-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
  return <section className="admin" id="admin"><div className="overline">OWNER MANAGEMENT</div><h2>Admin Resource Manager</h2><p>Manage your public catalog. Only your configured GitHub account can edit or publish resources.</p>{checked&&(owner?<>
  <div className="manager-toolbar"><input aria-label="Search managed resources" placeholder="Search resources..." value={query} onChange={e=>setQuery(e.target.value)}/><button onClick={exportDraft}>Download backup</button><button disabled={!snapshot} onClick={undo}>Undo deletion</button><button disabled={!dirty} onClick={reset}>Discard changes</button></div>
