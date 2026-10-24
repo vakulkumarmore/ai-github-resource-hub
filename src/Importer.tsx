@@ -13,6 +13,8 @@ export type Resource = {
   stars?: number;
   forks?: number;
   updatedAt?: string;
+  /** Optional manually chosen HTTPS project cover or logo URL. */
+  imageUrl?: string;
 };
 
 export const resourceKey = (url: string) => url.toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
