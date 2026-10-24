@@ -26,19 +26,6 @@
     "type": "repository"
   },
   {
-    "id": "hashicorp-terraform",
-    "name": "Terraform",
-    "url": "https://github.com/hashicorp/terraform",
-    "category": "Security & DevOps",
-    "description": "Infrastructure as code for provisioning and managing resources.",
-    "tags": [
-      "IaC",
-      "Cloud"
-    ],
-    "language": "Go",
-    "type": "repository"
-  },
-  {
     "id": "anthropics-claude-code",
     "name": "claude-code",
     "url": "https://github.com/anthropics/claude-code",
