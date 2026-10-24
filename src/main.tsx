@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowDownAZ, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, FilterX, Github, Grid2X2, Heart, LayoutList, LoaderCircle, Menu, Moon, Search, Shield, SlidersHorizontal, Sparkles, Star, Sun, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, FilterX, Github, Grid2X2, Heart, LayoutList, LoaderCircle, Menu, Moon, Search, Shield, SlidersHorizontal, Sparkles, Star, Sun, X, UserRound, Compass, Lightbulb, HeartHandshake, ArrowUpRight } from 'lucide-react';
 import resources from './resources.json';
 import { fetchMetadata, resourceKey, type Resource } from './Importer';
 import Admin from './Admin';
@@ -16,7 +16,7 @@ const readJson = <T,>(key: string, fallback: T): T => { try { const v = localSto
 function App() {
   const [published, setPublished] = useState<Resource[]>(initialCatalog);
   const [catalogLoading, setCatalogLoading] = useState(true);
-  const [screen, setScreen] = useState<'library' | 'admin'>('library');
+  const [screen, setScreen] = useState<'library' | 'about' | 'admin'>('library');
   const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All resources');
@@ -32,8 +32,9 @@ function App() {
 
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash === '#admin' || hash.startsWith('#admin/')) setScreen('admin');
-    const onHash = () => setScreen(window.location.hash.startsWith('#admin') ? 'admin' : 'library');
+    if (hash.startsWith('#admin')) setScreen('admin');
+    else if (hash === '#about') setScreen('about');
+    const onHash = () => setScreen(window.location.hash.startsWith('#admin') ? 'admin' : window.location.hash === '#about' ? 'about' : 'library');
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -74,6 +75,7 @@ function App() {
     const key = resourceKey(url);
     setFavorites(old => { const next = old.includes(key) ? old.filter(x => x !== key) : [...old, key]; localStorage.setItem('resource-hub-favorites', JSON.stringify(next)); return next; });
   };
+  const openAbout = () => { setScreen('about'); window.location.hash = 'about'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const openAdmin = () => { setScreen('admin'); window.location.hash = 'admin'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const openLibrary = () => { setScreen('library'); window.history.replaceState(null, '', window.location.pathname); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const loadStats = async () => {
@@ -93,12 +95,12 @@ function App() {
   return <div className="site-shell">
     <header className="site-header"><div className="header-inner">
       <button className="site-logo" onClick={openLibrary} aria-label="Go to AI GitHub Resource Hub home"><span className="logo-mark"><Github size={22}/></span><span className="logo-text"><strong>AI GitHub</strong><span>RESOURCE HUB</span></span></button>
-      <nav className="header-nav" aria-label="Primary navigation"><button className={screen === 'library' ? 'active' : ''} onClick={openLibrary}>Explore</button><button className={screen === 'admin' ? 'active' : ''} onClick={openAdmin}>Admin workspace</button></nav>
+      <nav className="header-nav" aria-label="Primary navigation"><button className={screen === 'library' ? 'active' : ''} onClick={openLibrary}>Explore</button><button className={screen === 'about' ? 'active' : ''} onClick={openAbout}>About the Creator</button><button className={screen === 'admin' ? 'active' : ''} onClick={openAdmin}>Admin workspace</button></nav>
       <div className="header-actions"><span className="header-count">{published.length} resources</span><button className="icon-button" title={dark ? 'Switch to light theme' : 'Switch to dark theme'} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDark(!dark)}>{dark ? <Sun size={19}/> : <Moon size={19}/>}</button><button className="btn header-admin" onClick={openAdmin}><Shield size={16}/> Manage</button></div>
     </div></header>
 
     {screen === 'library' ? <main className="public-main">
-      <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> YOUR OPEN-SOURCE DISCOVERY SPACE</div><h1>Find the right GitHub resources, <span>faster.</span></h1><p>A carefully organized library of AI tools, Claude projects, automation, frameworks and developer resources. Everything worth bookmarking, all in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Curated links</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
+      <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> YOUR OPEN-SOURCE DISCOVERY SPACE</div><h1>Find the right GitHub resources, <span>faster.</span></h1><p>A carefully organized library of AI tools, Claude projects, automation, frameworks and developer resources. Everything worth bookmarking, all in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Curated links</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div><div className="creator-credit"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More</strong></span><button className="creator-read-more" onClick={openAbout} aria-label="Read about the creator">About me <ArrowRight size={14}/></button></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
       <section className="browse-section" id="browse"><div className="browse-header"><div><span className="section-eyebrow">DISCOVER & EXPLORE</span><h2>Resource library</h2><p>Search the collection or browse by category.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} available resources`}</div></div>
       <div className="explore-layout">
         <aside className={`category-sidebar ${mobileFilters ? 'open' : ''}`}><div className="sidebar-heading"><span>Categories</span><button className="mobile-close" onClick={() => setMobileFilters(false)} aria-label="Close filters"><X size={19}/></button></div><div className="category-list"><button className={category === 'All resources' && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory('All resources'); setFavoritesOnly(false); }}><BookOpen size={17}/><span>All resources</span><em>{published.length}</em></button><button className={favoritesOnly ? 'selected' : ''} onClick={() => { setFavoritesOnly(true); setCategory('All resources'); setPage(1); setMobileFilters(false); }}><Heart size={17}/><span>My favorites</span><em>{favorites.length}</em></button></div><div className="sidebar-divider"/><div className="category-list">{categories.map(([name, count]) => <button key={name} className={category === name && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory(name); setFavoritesOnly(false); }}><span className="category-bullet"/><span title={name}>{name}</span><em>{count}</em></button>)}</div><div className="sidebar-note"><Sparkles size={17}/><strong>Made for discovery</strong><p>Save favorites and revisit them anytime on this device.</p></div></aside>
@@ -110,8 +112,36 @@ function App() {
           {!!filtered.length && <div className="pagination"><span>Showing <strong>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of {filtered.length.toLocaleString()}</span><div><button className="btn subtle small" disabled={currentPage === 1} onClick={() => { setPage(p => p - 1); document.getElementById('browse')?.scrollIntoView(); }}><ArrowLeft size={15}/> Previous</button><span className="page-number">{currentPage} / {totalPages}</span><button className="btn subtle small" disabled={currentPage === totalPages} onClick={() => { setPage(p => p + 1); document.getElementById('browse')?.scrollIntoView(); }}>Next <ArrowRight size={15}/></button></div></div>}
         </div>
       </div></section>
+    </main> : screen === 'about' ? <main className="about-main" id="about">
+      <button className="about-back" onClick={openLibrary}><ArrowLeft size={16}/> Back to resource library</button>
+      <section className="about-hero" aria-labelledby="about-title">
+        <div className="about-copy">
+          <span className="about-eyebrow"><UserRound size={16}/> THE PERSON BEHIND THE HUB</span>
+          <h1 id="about-title">Hi, I'm <span>Vakul Kumar More.</span></h1>
+          <p className="about-subtitle">Technology, curiosity, and the belief that useful knowledge should be shared.</p>
+          <p>I'm a public-sector technology professional with 21 years of experience supporting digital solutions and modernization efforts, including work with Baltimore City government.</p>
+          <p>My work brings together enterprise applications, IT portfolio management, DevOps, data and analytics, Microsoft Power Platform, and practical AI-powered automation.</p>
+          <button className="btn primary about-explore" onClick={openLibrary}><BookOpen size={17}/> Explore the resource library <ArrowRight size={16}/></button>
+        </div>
+        <div className="about-identity" aria-label="Vakul Kumar More, creator and curator">
+          <div className="about-identity-pattern" aria-hidden="true"><span/><span/><span/><span/></div>
+          <div className="about-monogram" aria-hidden="true">VM</div>
+          <div className="about-identity-meta"><span>CREATED &amp; CURATED BY</span><strong>Vakul Kumar More</strong><small>Public-sector technologist · AI &amp; automation enthusiast</small></div>
+        </div>
+      </section>
+      <section className="about-purpose" aria-labelledby="about-purpose-title">
+        <div className="about-section-heading"><span className="section-eyebrow">WHY I BUILT THIS</span><h2 id="about-purpose-title">A better way to discover what works.</h2></div>
+        <div className="about-purpose-body"><p>I created <strong>AI GitHub Resource Hub</strong> to turn scattered bookmarks into a useful, organized collection of open-source tools and projects. There is incredible work being shared on GitHub every day, but finding the right starting point shouldn't be difficult.</p><p>My goal is to make it easier for students, curious learners, technologists, and experienced developers to discover resources, understand what they do, and apply them to real problems.</p></div>
+      </section>
+      <section className="about-values" aria-label="What guides this resource hub">
+        <article className="about-value"><div className="about-value-icon"><Compass size={22}/></div><h3>Make discovery easier</h3><p>Organize worthwhile projects into clear categories, so people can spend less time searching and more time building.</p></article>
+        <article className="about-value"><div className="about-value-icon"><Lightbulb size={22}/></div><h3>Focus on practical value</h3><p>Highlight resources that can help people learn, automate work, solve challenges, or explore a new idea.</p></article>
+        <article className="about-value"><div className="about-value-icon"><HeartHandshake size={22}/></div><h3>Keep knowledge accessible</h3><p>Support open learning and knowledge sharing, an approach I also value in community and STEM initiatives.</p></article>
+      </section>
+      <section className="about-focus" aria-label="Professional interests"><div><span className="section-eyebrow">AREAS OF INTEREST</span><h2>What I enjoy working on</h2></div><div className="about-chips"><span>AI &amp; Automation</span><span>Microsoft Power Platform</span><span>DevOps</span><span>Data &amp; Analytics</span><span>Enterprise Modernization</span><span>STEM &amp; Community</span></div></section>
+      <section className="about-close"><span className="about-close-mark" aria-hidden="true">VM</span><div><h2>Thanks for exploring.</h2><p>This library is a growing collection. I hope it helps you discover something useful for your next project.</p></div><button className="btn about-return" onClick={openLibrary}>Browse resources <ArrowRight size={16}/></button></section>
     </main> : catalogLoading ? <div className="workspace auth-message"><LoaderCircle className="spin"/> Loading published resources...</div> : <Admin publishedCatalog={published} onSaved={items => { setPublished(items); setCatalogLoading(false); }} onBack={openLibrary}/>}
-    <footer className="site-footer"><div><span className="footer-logo"><Github size={18}/> AI GitHub Resource Hub</span><span>Built for curious developers, makers and learners.</span></div><span>Curated resources · Powered by GitHub & Cloudflare</span></footer>
+    <footer className="site-footer"><div><span className="footer-logo"><Github size={18}/> AI GitHub Resource Hub</span><span>Created &amp; curated by <strong className="footer-author">Vakul Kumar More</strong></span><button className="footer-about-link" onClick={openAbout}>About the Creator <ArrowUpRight size={13}/></button></div><span>Independent resource directory · Powered by GitHub &amp; Cloudflare</span></footer>
   </div>;
 }
 
