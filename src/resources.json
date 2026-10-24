@@ -475,5 +475,45 @@
     ],
     "language": "TypeScript",
     "type": "repository"
+  },
+  {
+    "id": "cpor-profile",
+    "name": "cpor",
+    "url": "https://github.com/cpor",
+    "category": "Uncategorized",
+    "description": "GitHub profile for cpor.",
+    "tags": [],
+    "type": "profile"
+  },
+  {
+    "id": "cport-profile",
+    "name": "cport",
+    "url": "https://github.com/cport",
+    "category": "Uncategorized",
+    "description": "GitHub profile for cport.",
+    "tags": [],
+    "type": "profile"
+  },
+  {
+    "id": "cporter202-marketing-apis-that-drive-roi",
+    "name": "marketing-apis-that-drive-roi",
+    "url": "https://github.com/cporter202/marketing-apis-that-drive-roi",
+    "category": "Data & Analytics",
+    "description": "This GitHub repo is a powerhouse collection of marketing APIs you can start using immediately to drive measurable ROI — ads, SEO, sentiment, campaigns, and attribution. One of the most valuable marketing API lists on GitHub.",
+    "tags": [
+      "advertising",
+      "analytics",
+      "apify",
+      "apis",
+      "attribution",
+      "awesome-list",
+      "brand-monitoring",
+      "content-marketing"
+    ],
+    "type": "repository",
+    "language": "",
+    "stars": 45,
+    "forks": 11,
+    "updatedAt": "2026-10-20T04:13:05Z"
   }
 ]
