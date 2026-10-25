@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { ArrowRight, Check, Download, ExternalLink, Github, Info, LoaderCircle, Plus, Search, Sparkles, UploadCloud } from 'lucide-react';
 import { categorize, cleanHashtag, githubDetailsToResource, makeOneLiner, suggestHashtags, type GitHubDetails } from './resourceAnalysis';
 import { apiJson } from './apiJson';
+import { analyzeGitHubPaste, parseGitHubLinks, type ParsedGitHubLink } from './githubPasteParser';
+import './importerPaste.css';
 
 export type Resource = {
   id: string;
@@ -40,23 +42,9 @@ export function suggestCategory(text: string) {
   return 'Uncategorized';
 }
 
-export type ParsedLink = { url: string; owner: string; repo?: string };
-export function parseGitHubLinks(raw: string): ParsedLink[] {
-  const found = raw.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/[a-z0-9-]+(?:\/[a-z0-9_.-]+)?/gi) || [];
-  const reserved = new Set(['topics', 'explore', 'settings', 'login', 'features', 'marketplace', 'orgs', 'search', 'notifications', 'sponsors', 'collections', 'new']);
-  const unique = new Map<string, ParsedLink>();
-  for (const match of found) {
-    try {
-      const parsed = new URL(match.startsWith('http') ? match : `https://${match}`);
-      const [owner, repo] = parsed.pathname.split('/').filter(Boolean);
-      if (!owner || reserved.has(owner.toLowerCase())) continue;
-      const cleanedRepo = repo?.replace(/\.git$/i, '');
-      const url = `https://github.com/${owner}${cleanedRepo ? `/${cleanedRepo}` : ''}`;
-      unique.set(resourceKey(url), { url, owner, repo: cleanedRepo });
-    } catch { /* Ignore malformed links */ }
-  }
-  return Array.from(unique.values());
-}
+export type ParsedLink = ParsedGitHubLink;
+// Retain the old export for any other components importing it.
+export { parseGitHubLinks };
 
 export function starterResource(link: ParsedLink): Resource {
   const label = link.repo || link.owner;
@@ -117,6 +105,9 @@ export default function Importer({ catalog, onApply, onNavigate }: Props) {
   const [errors, setErrors] = useState(0);
   const [analyzed, setAnalyzed] = useState<string[]>([]);
   const [progress, setProgress] = useState('');
+  const parsedInput = useMemo(() => analyzeGitHubPaste(raw), [raw]);
+  const existingUrls = useMemo(() => new Set([...catalog, ...items].map(r => resourceKey(r.url))), [catalog, items]);
+  const readyToStage = useMemo(() => parsedInput.links.filter(link => !existingUrls.has(resourceKey(link.url))).length, [parsedInput, existingUrls]);
   const preview = useMemo(() => items.filter(r => [r.name, r.url, r.category].join(' ').toLowerCase().includes(query.toLowerCase())), [items, query]);
   const eligible = useMemo(() => {
     const known = new Set(catalog.map(r => resourceKey(r.url)));
@@ -124,8 +115,8 @@ export default function Importer({ catalog, onApply, onNavigate }: Props) {
   }, [items, catalog]);
 
   const analyze = async () => {
-    const links = parseGitHubLinks(raw);
-    if (!links.length) { setStatus('Paste valid github.com repository or profile URLs first.'); return; }
+    const links = parsedInput.links;
+    if (!links.length) { setStatus('No valid GitHub repository or profile links found. Check the examples below.'); return; }
     const known = new Set(catalog.map(r => resourceKey(r.url)));
     const staged = new Set(items.map(r => resourceKey(r.url)));
     const newItems = links.filter(l => !known.has(resourceKey(l.url)) && !staged.has(resourceKey(l.url))).map(starterResource);
@@ -133,7 +124,7 @@ export default function Importer({ catalog, onApply, onNavigate }: Props) {
     setApplied(false);
     setLimit(20);
     setErrors(0);
-    setStatus(`${newItems.length} new links staged. ${links.length - newItems.length} already listed. Fetching GitHub details and suggested summaries for the first batch…`);
+    setStatus(`${newItems.length} new links staged. ${links.length - newItems.length} already present in the library or your draft.${newItems.length ? ' Analyzing the first 10 staged links…' : ''}`);
     if (newItems.length) await analyzeItems(newItems.slice(0, 10));
   };
 
@@ -188,9 +179,27 @@ export default function Importer({ catalog, onApply, onNavigate }: Props) {
   return <div className="workspace-panel">
     <div className="panel-heading"><span className="mini-icon"><UploadCloud size={21}/></span><div><h2>Bulk import GitHub links</h2><p>Paste up to hundreds of links. We'll prepare the catalog instantly, then fetch optional GitHub details in smaller batches.</p></div></div>
     <label className="field-label" htmlFor="import-input">GitHub URLs</label>
-    <textarea id="import-input" className="import-textarea" rows={6} value={raw} onChange={e => setRaw(e.target.value)} placeholder={'https://github.com/anthropics/claude-code\nhttps://github.com/ollama/ollama\nhttps://github.com/langchain-ai/langchain'} />
+    <textarea id="import-input" className="import-textarea" rows={6} value={raw} onChange={e => setRaw(e.target.value)} placeholder={'Paste GitHub links in any format: one per line, space/comma separated, JSON or even URLs pasted together.'} />
+    <div className="paste-helper">Paste URLs separated by spaces, commas, semicolons, tabs or newlines. JSON arrays/objects, Markdown links and URLs pasted together also work.</div>
+    {raw.trim() && <div className="paste-preview" role="status" aria-live="polite">
+      <strong>{parsedInput.links.length} valid GitHub link{parsedInput.links.length === 1 ? '' : 's'} detected</strong>
+      <span>{readyToStage} new to stage</span>
+      <span>{parsedInput.links.length - readyToStage} already in catalog or draft</span>
+      {parsedInput.duplicates > 0 && <span>{parsedInput.duplicates} duplicate{parsedInput.duplicates === 1 ? '' : 's'} in paste</span>}
+      {parsedInput.ignored > 0 && <span>{parsedInput.ignored} invalid/navigation GitHub link{parsedInput.ignored === 1 ? '' : 's'} ignored</span>}
+      {parsedInput.format === 'JSON' && <span>JSON detected</span>}
+    </div>}
+    {parsedInput.links.length > 0 && <details className="paste-preview-list"><summary>Preview parsed links ({parsedInput.links.length})</summary>
+      <ol>{parsedInput.links.slice(0, 10).map(link => <li key={link.url}><code>{link.url}</code></li>)}</ol>
+      {parsedInput.links.length > 10 && <span>Showing first 10; all {parsedInput.links.length} will be staged when you click Import.</span>}
+    </details>}
+    <details className="paste-examples"><summary>Examples of supported paste formats</summary><pre>{`https://github.com/anthropics/claude-code https://github.com/ollama/ollama
+https://github.com/anthropics/claude-codehttps://github.com/ollama/ollama
+["https://github.com/ollama/ollama", "https://github.com/anthropics/claude-code"]
+{"repositories":[{"url":"https://github.com/anthropics/claude-code"},{"full_name":"ollama/ollama"}]}`}</pre></details>
     <div className="action-row">
-      <button className="btn primary" disabled={busy} onClick={analyze}><Search size={16}/> Analyze links & details</button>
+      <button className="btn primary" disabled={busy || readyToStage === 0} onClick={analyze}><Search size={16}/> Stage {readyToStage} new link{readyToStage === 1 ? '' : 's'}</button>
+      <button className="btn subtle" disabled={busy || !parsedInput.links.length} onClick={() => { setRaw(parsedInput.links.map(link => link.url).join('\n')); setStatus('Converted pasted content to clean GitHub URLs, one per line. Review and stage when ready.'); }}>Clean up pasted links</button>
       {items.length > 0 && <><button className="btn subtle" disabled={busy} onClick={() => enrich(false)}>{busy ? <LoaderCircle className="spin" size={16}/> : <Sparkles size={16}/>} {busy ? 'Analyzing...' : 'Analyze next 10'}</button><button className="btn subtle" disabled={busy} onClick={() => enrich(true)}>Analyze all remaining</button></>}
       {items.length > 0 && <button className="btn subtle" onClick={download}><Download size={16}/> Download backup</button>}
     </div>

@@ -1,0 +1,14 @@
+/* v19: resilient bulk importer feedback and format guidance. */
+.paste-helper { margin: 8px 0 12px; font-size: 12px; line-height: 1.55; color: var(--secondary); }
+.paste-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px; margin: 8px 0 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); }
+.paste-preview > strong { font-size: 12px; margin-right: 4px; color: var(--text); }
+.paste-preview > span { border: 1px solid var(--border); background: var(--surface-secondary, var(--surface)); border-radius: 999px; font-size: 11px; line-height: 1.35; padding: 5px 9px; color: var(--secondary); }
+.paste-examples { margin-top: 10px; color: var(--secondary); font-size: 12px; }
+.paste-examples summary { cursor: pointer; width: fit-content; font-weight: 650; }
+.paste-examples pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 12px; line-height: 1.65; font-size: 11px; color: var(--text); }
+
+.paste-preview-list { margin: 6px 0 12px; font-size: 12px; color: var(--secondary); }
+.paste-preview-list summary { cursor: pointer; font-weight: 650; }
+.paste-preview-list ol { margin: 8px 0; padding-left: 22px; }
+.paste-preview-list li { overflow-wrap: anywhere; padding: 2px 0; }
+.paste-preview-list code { color: var(--text); font-size: 11px; }
