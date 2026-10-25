@@ -515,5 +515,87 @@
     "stars": 45,
     "forks": 11,
     "updatedAt": "2026-10-20T04:13:05Z"
+  },
+  {
+    "id": "reticlehq-reticle",
+    "name": "reticle",
+    "url": "https://github.com/reticlehq/reticle",
+    "category": "Claude",
+    "description": "AI agents can generate code, but still struggle to understand what they build. Reticle brings Jev-style machine-native runtime perception to web & desktop applications.",
+    "tags": [
+      "agent-skill",
+      "agent-skills",
+      "agent-testing",
+      "agent-verification",
+      "ai-testing-tool",
+      "automated-testing",
+      "claude-code",
+      "claude-skills"
+    ],
+    "type": "repository",
+    "language": "TypeScript",
+    "stars": 1270,
+    "forks": 230,
+    "updatedAt": "2026-10-25T03:03:09Z"
+  },
+  {
+    "id": "ibelick-ui-skills",
+    "name": "ui-skills",
+    "url": "https://github.com/ibelick/ui-skills",
+    "category": "Skills",
+    "description": "Skills for Design Engineers",
+    "tags": [
+      "skills",
+      "ui-skills"
+    ],
+    "type": "repository",
+    "language": "TypeScript",
+    "stars": 10140,
+    "forks": 475,
+    "updatedAt": "2026-10-20T21:11:08Z"
+  },
+  {
+    "id": "jaypokale-chisle",
+    "name": "Chisle",
+    "url": "https://github.com/JayPokale/Chisle",
+    "category": "Claude",
+    "description": "Cut your AI coding agent's token bill on three axes: terse prose, YAGNI-first code, and tool-output compression. Claude Code, Pi, Cursor, Codex, Gemini + 4 more. Zero deps, published benchmarks including the runs it loses.",
+    "tags": [
+      "agent-skills",
+      "anthropic",
+      "caveman",
+      "caveman-alternative",
+      "claude",
+      "claude-ai",
+      "claude-code",
+      "claude-code-skill"
+    ],
+    "type": "repository",
+    "language": "JavaScript",
+    "stars": 714,
+    "forks": 49,
+    "updatedAt": "2026-10-24T04:48:37Z"
+  },
+  {
+    "id": "nvidia-skillspector",
+    "name": "SkillSpector",
+    "url": "https://github.com/NVIDIA/SkillSpector",
+    "category": "Claude",
+    "description": "Security scanner for AI agent skills. Detect vulnerabilities, malicious patterns, security risks, prompt injection, data exfiltration, and supply-chain risks in Claude Code, Codex, and MCP skills before you install them.",
+    "tags": [
+      "agent-security",
+      "agent-skills",
+      "agentic-ai",
+      "ai-security",
+      "claude-code",
+      "mcp",
+      "prompt-injection",
+      "security-scanner"
+    ],
+    "type": "repository",
+    "language": "Python",
+    "stars": 21355,
+    "forks": 1883,
+    "updatedAt": "2026-10-23T09:40:29Z"
   }
 ]
