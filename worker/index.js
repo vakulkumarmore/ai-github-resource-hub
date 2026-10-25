@@ -3,6 +3,10 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const cookie=(name,value,maxAge)=>`${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 const cookies=req=>Object.fromEntries((req.headers.get('cookie')||'').split(';').map(s=>s.trim().split('=').map(decodeURIComponent)).filter(p=>p.length===2));
 const enc=new TextEncoder();
+// Bound catalog publishing by actual UTF-8 payload size, not just Content-Length.
+// 8 MiB accommodates thousands of repository metadata entries without removing safety checks.
+const MAX_CATALOG_BYTES=8*1024*1024;
+const oversizedCatalog=bytes=>json({error:`Catalog exceeds the 8 MiB publishing limit (${(bytes/1048576).toFixed(2)} MiB). Export a backup and remove embedded image data or split the catalog.`,limitBytes:MAX_CATALOG_BYTES,actualBytes:bytes},413);
 const githubBase64=text=>{const bytes=enc.encode(text);let binary='';for(let i=0;i<bytes.length;i+=16384)binary+=String.fromCharCode(...bytes.subarray(i,i+16384));return btoa(binary);};
 const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
@@ -67,7 +71,17 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
    return json({results});
  }
  if(path==='/api/catalog'&&req.method==='GET'){const r=await fetch(`https://api.github.com/repos/${encodeURIComponent(env.OWNER_LOGIN)}/${encodeURIComponent(env.REPO_NAME)}/contents/src/resources.json`,{headers:{Accept:'application/vnd.github.raw+json','User-Agent':'ai-github-resource-hub'},cf:{cacheTtl:60}});if(!r.ok)return json({error:'Unable to load published catalog'},r.status);return new Response(await r.text(),{headers:{'content-type':'application/json','cache-control':'public,max-age=60'}});}
- if(path==='/api/catalog'&&req.method==='PUT'){if(!owner)return json({error:'Owner sign-in required'},401);if(Number(req.headers.get('content-length')||0)>500000)return json({error:'Catalog too large'},413);let resources;try{resources=await req.json();}catch{return json({error:'Invalid JSON'},400);}if(!Array.isArray(resources)||resources.length>3000||resources.some(r=>!r||typeof r.id!=='string'||typeof r.name!=='string'||typeof r.description!=='string'||typeof r.category!=='string'||typeof r.url!=='string'||!Array.isArray(r.tags)||!r.url.startsWith('https://github.com/')||r.url.length>500))return json({error:'Invalid resource catalog'},400);const target=`https://api.github.com/repos/${encodeURIComponent(env.OWNER_LOGIN)}/${encodeURIComponent(env.REPO_NAME)}/contents/src/resources.json`;const headers=gh(session.token);const existing=await fetch(target,{headers});if(!existing.ok){
+ if(path==='/api/catalog'&&req.method==='PUT'){
+   if(!owner)return json({error:'Owner sign-in required'},401);
+   const advertisedBytes=Number(req.headers.get('content-length')||0);
+   if(Number.isFinite(advertisedBytes)&&advertisedBytes>MAX_CATALOG_BYTES)return oversizedCatalog(advertisedBytes);
+   // Content-Length is sometimes omitted or inaccurate. Check the actual UTF-8 bytes too.
+   let rawCatalog;
+   try{rawCatalog=await req.text();}catch{return json({error:'Unable to read catalog request'},400);}
+   const actualBytes=enc.encode(rawCatalog).byteLength;
+   if(actualBytes>MAX_CATALOG_BYTES)return oversizedCatalog(actualBytes);
+   let resources;
+   try{resources=JSON.parse(rawCatalog);}catch{return json({error:'Invalid JSON'},400);}if(!Array.isArray(resources)||resources.length>3000||resources.some(r=>!r||typeof r.id!=='string'||typeof r.name!=='string'||typeof r.description!=='string'||typeof r.category!=='string'||typeof r.url!=='string'||!Array.isArray(r.tags)||!r.url.startsWith('https://github.com/')||r.url.length>500))return json({error:'Invalid resource catalog'},400);const target=`https://api.github.com/repos/${encodeURIComponent(env.OWNER_LOGIN)}/${encodeURIComponent(env.REPO_NAME)}/contents/src/resources.json`;const headers=gh(session.token);const existing=await fetch(target,{headers});if(!existing.ok){
    const responseInfo = await existing.json().catch(()=>({}));
    const githubMessage = typeof responseInfo.message === 'string' ? responseInfo.message.slice(0,180) : 'GitHub could not read the file';
    const instructions = existing.status === 401
