@@ -7034,5 +7034,72 @@
     "updatedAt": "2026-10-16T21:38:46Z",
     "homepage": "https://arxiv.org/pdf/2412.20138",
     "license": "Apache-2.0"
+  },
+  {
+    "id": "kamranahmedse-developer-roadmap",
+    "name": "developer-roadmap",
+    "url": "https://github.com/kamranahmedse/developer-roadmap",
+    "category": "DevOps & Cloud",
+    "description": "Interactive roadmaps, guides and other educational content to help developers grow in their careers.",
+    "oneLiner": "Interactive roadmaps, guides and other educational content to help developers grow in their careers.",
+    "hashtags": [
+      "#DevOps",
+      "#angularroadmap",
+      "#backendroadmap",
+      "#blockchainroadmap",
+      "#computerscience",
+      "#dbaroadmap"
+    ],
+    "tags": [
+      "angular-roadmap",
+      "backend-roadmap",
+      "blockchain-roadmap",
+      "computer-science",
+      "dba-roadmap",
+      "developer-roadmap",
+      "devops-roadmap",
+      "frontend-roadmap",
+      "go-roadmap",
+      "java-roadmap",
+      "javascript-roadmap",
+      "nodejs-roadmap"
+    ],
+    "type": "repository",
+    "language": "TypeScript",
+    "stars": 370354,
+    "forks": 45141,
+    "updatedAt": "2026-10-23T12:39:16Z",
+    "homepage": "https://roadmap.sh"
+  },
+  {
+    "id": "facebook-react",
+    "name": "react",
+    "url": "https://github.com/facebook/react",
+    "category": "Web Development",
+    "description": "The library for web and native user interfaces.",
+    "oneLiner": "The library for web and native user interfaces.",
+    "hashtags": [
+      "#WebDevelopment",
+      "#declarative",
+      "#frontend",
+      "#JavaScript",
+      "#library",
+      "#react"
+    ],
+    "tags": [
+      "declarative",
+      "frontend",
+      "javascript",
+      "library",
+      "react",
+      "ui"
+    ],
+    "type": "repository",
+    "language": "JavaScript",
+    "stars": 251759,
+    "forks": 51565,
+    "updatedAt": "2026-10-23T15:07:18Z",
+    "homepage": "https://react.dev",
+    "license": "MIT"
   }
 ]
