@@ -3,6 +3,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const cookie=(name,value,maxAge)=>`${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 const cookies=req=>Object.fromEntries((req.headers.get('cookie')||'').split(';').map(s=>s.trim().split('=').map(decodeURIComponent)).filter(p=>p.length===2));
 const enc=new TextEncoder();
+const githubBase64=text=>{const bytes=enc.encode(text);let binary='';for(let i=0;i<bytes.length;i+=16384)binary+=String.fromCharCode(...bytes.subarray(i,i+16384));return btoa(binary);};
 const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
 async function key(secret){return crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',enc.encode(secret)),'AES-GCM',false,['encrypt','decrypt']);}
@@ -11,7 +12,7 @@ async function unseal(token,secret){try{const [a,b]=token.split('.');const clear
 const gh=(token)=>({'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'ai-github-resource-hub'});
 const redirect=(url,headers={})=>new Response(null,{status:302,headers:{location:url,...headers}});
 const redirectWithCookies=(url,values)=>{const headers=new Headers({location:url});for(const value of values)headers.append('Set-Cookie',value);return new Response(null,{status:302,headers});};
-export default {async fetch(req,env){const url=new URL(req.url),path=url.pathname,cs=cookies(req);if(!path.startsWith('/api/'))return env.ASSETS.fetch(req);
+export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pathname,cs=cookies(req);if(!path.startsWith('/api/'))return env.ASSETS.fetch(req);
  if(!env.CLIENT_ID||!env.CLIENT_SECRET||!env.SESSION_SECRET||!env.OWNER_LOGIN||!env.REPO_NAME)return json({error:'Server configuration incomplete'},503);
  if(path==='/api/login'){const state=crypto.randomUUID();const target=new URL('https://github.com/login/oauth/authorize');target.searchParams.set('client_id',env.CLIENT_ID);target.searchParams.set('redirect_uri',url.origin+'/api/callback');target.searchParams.set('state',state);target.searchParams.set('scope','public_repo');return redirect(target.toString(),{'set-cookie':cookie('oauth_state',state,600)});}
  if(path==='/api/callback'){if(!url.searchParams.get('state')||url.searchParams.get('state')!==cs.oauth_state)return json({error:'Invalid OAuth state'},403);const code=url.searchParams.get('code');if(!code)return json({error:'Missing OAuth code'},400);const exchange=await fetch('https://github.com/login/oauth/access_token',{method:'POST',headers:{Accept:'application/json','content-type':'application/json'},body:JSON.stringify({client_id:env.CLIENT_ID,client_secret:env.CLIENT_SECRET,code,redirect_uri:url.origin+'/api/callback'})});const auth=await exchange.json();if(!auth.access_token)return json({error:'GitHub authorization failed'},401);const userRes=await fetch('https://api.github.com/user',{headers:gh(auth.access_token)});if(!userRes.ok)return json({error:'Cannot verify GitHub account'},401);const user=await userRes.json();if(user.login.toLowerCase()!==env.OWNER_LOGIN.toLowerCase())return json({error:'Only the configured owner can administer this catalog'},403);const session=await seal({token:auth.access_token,login:user.login,exp:Date.now()+7*86400000},env.SESSION_SECRET);return redirectWithCookies('/#admin',[cookie('hub_session',session,7*86400),cookie('oauth_state','',0)]);}
@@ -85,6 +86,7 @@ export default {async fetch(req,env){const url=new URL(req.url),path=url.pathnam
      rateLimitRemaining: existing.headers.get('x-ratelimit-remaining'),
      grantedScopes: existing.headers.get('x-oauth-scopes'),
    }, existing.status);
- }const current=await existing.json();const payload=JSON.stringify(resources,null,2)+'\n';const put=await fetch(target,{method:'PUT',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({message:'Update resource catalog from admin dashboard',content:btoa(String.fromCharCode(...enc.encode(payload))),sha:current.sha})});if(!put.ok){const detail=await put.json().catch(()=>({}));return json({error:detail.message||'GitHub update failed'},put.status);}return json({ok:true,message:'Committed to GitHub. Deployment will follow.'});}
+ }const current=await existing.json();const payload=JSON.stringify(resources,null,2)+'\n';const put=await fetch(target,{method:'PUT',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({message:'Update resource catalog from admin dashboard',content:githubBase64(payload),sha:current.sha})});if(!put.ok){const detail=await put.json().catch(()=>({}));return json({error:detail.message||'GitHub update failed'},put.status);}return json({ok:true,message:'Committed to GitHub. Deployment will follow.'});}
  return json({error:'Not found'},404);
+}catch(error){console.error('Worker request failed',error);return json({error:'The server could not complete this request. Check Cloudflare Worker logs for details.'},500);}
 }};
