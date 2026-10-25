@@ -1,4 +1,4 @@
-name = "ai-github-resource-hub"
+name = "ai-github-resource-hub1"
 main = "worker/index.js"
 compatibility_date = "2026-10-01"
 
