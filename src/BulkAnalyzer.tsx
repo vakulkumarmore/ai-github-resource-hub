@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './bulkAnalysis.css';
+import { apiJson } from './apiJson';
 import { AlertCircle, ArrowRight, Check, CheckCircle2, Download, LoaderCircle, PauseCircle, Play, RefreshCcw, Search, ShieldCheck, Sparkles, XCircle } from 'lucide-react';
 import type { Resource } from './Importer';
 import { resourceKey } from './Importer';
@@ -29,11 +30,7 @@ async function lookupBatch(batch: Resource[], signal: AbortSignal): Promise<Resu
     headers: {'content-type': 'application/json'},
     body: JSON.stringify({urls: batch.map(item => item.url)}),
   });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = typeof body.error === 'string' ? body.error : `HTTP ${response.status}`;
-    throw new Error(`GitHub analysis request failed: ${message}${response.status === 401 ? '. Sign in again.' : ''}`);
-  }
+  const body = await apiJson<{results: GitHubDetails[]}>(response, '/api/analyze');
   if (!Array.isArray(body.results)) throw new Error('The analysis service did not return a list of results.');
   const returned = new Map<string, GitHubDetails>(body.results.map((r: GitHubDetails) => [resourceKey(r.url), r]));
   return batch.map(resource => {

@@ -6,6 +6,7 @@ import { fetchMetadata, resourceKey, type Resource } from './Importer';
 import Admin from './Admin';
 import RepoVisual from './RepoVisual';
 import { countHashtags, hashtagKey, resourceHashtags } from './hashtagUtils';
+import { apiJson } from './apiJson';
 import './style.css';
 
 type Sort = 'featured' | 'name' | 'category' | 'stars';
@@ -18,6 +19,7 @@ const readJson = <T,>(key: string, fallback: T): T => { try { const v = localSto
 function App() {
   const [published, setPublished] = useState<Resource[]>(initialCatalog);
   const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogWarning, setCatalogWarning] = useState('');
   const [screen, setScreen] = useState<'library' | 'about' | 'admin'>('library');
   const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
   const [search, setSearch] = useState('');
@@ -43,10 +45,10 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   useEffect(() => {
-    fetch('/api/catalog').then(r => {
-      if (!r.ok) throw new Error('Cannot reach live catalog');
-      return r.json();
-    }).then(data => { if (Array.isArray(data)) setPublished(data); }).catch(() => {}).finally(() => setCatalogLoading(false));
+    fetch('/api/catalog').then(r => apiJson<unknown>(r, '/api/catalog'))
+      .then(data => { if (Array.isArray(data)) { setPublished(data as Resource[]); setCatalogWarning(''); } else { throw new Error('/api/catalog returned JSON but not a resource array.'); } })
+      .catch(error => setCatalogWarning(error instanceof Error ? error.message : 'Unable to load the live resource catalog.'))
+      .finally(() => setCatalogLoading(false));
   }, []);
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('ai-hub-dark-mode', JSON.stringify(dark)); }, [dark]);
   useEffect(() => { localStorage.setItem('ai-hub-view', JSON.stringify(view)); }, [view]);
@@ -111,6 +113,7 @@ function App() {
       <nav className="header-nav" aria-label="Primary navigation"><button className={screen === 'library' ? 'active' : ''} onClick={openLibrary}>Explore</button><button className={screen === 'about' ? 'active' : ''} onClick={openAbout}>About</button><button className={screen === 'admin' ? 'active' : ''} onClick={openAdmin}>Admin workspace</button></nav>
       <div className="header-actions"><span className="header-count">{published.length} resources</span><button className="icon-button" title={dark ? 'Switch to light theme' : 'Switch to dark theme'} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDark(!dark)}>{dark ? <Sun size={19}/> : <Moon size={19}/>}</button><button className="btn header-admin" onClick={openAdmin}><Shield size={16}/> Manage</button></div>
     </div></header>
+    {catalogWarning && <div role="alert" className="notice" style={{margin:'12px auto',maxWidth:1100,padding:16}}><strong>Live catalog unavailable. Showing the bundled resource list.</strong><div>{catalogWarning}</div><div>Do not publish from an outdated catalog until the API is restored.</div></div>}
 
     {screen === 'library' ? <main className="public-main">
       <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> THE OPEN SOURCE AI DIRECTORY</div><h1>Discover brilliant tools. <span>Build what’s next.</span></h1><p>Explore handpicked AI projects, developer tools, Claude resources and automation. Real repositories, useful context, and everything organized in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Visual repo previews</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div><div className="creator-credit"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More</strong></span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight, Check, Download, ExternalLink, Github, Info, LoaderCircle, Plus, Search, Sparkles, UploadCloud } from 'lucide-react';
 import { categorize, cleanHashtag, githubDetailsToResource, makeOneLiner, suggestHashtags, type GitHubDetails } from './resourceAnalysis';
+import { apiJson } from './apiJson';
 
 export type Resource = {
   id: string;
@@ -86,7 +87,7 @@ async function fetchBatch(resources: Resource[]): Promise<Array<{url: string; me
     method: 'POST', credentials: 'same-origin', headers: {'content-type': 'application/json'},
     body: JSON.stringify({urls: resources.map(r => r.url)}),
   });
-  if (response.status === 404) {
+  if (response.status === 404 && (response.headers.get('content-type') || '').toLowerCase().includes('json')) {
     // Frontend deployed before the Worker upgrade. Public GitHub requests are more limited.
     const results = [];
     for (const resource of resources) {
@@ -95,11 +96,8 @@ async function fetchBatch(resources: Resource[]): Promise<Array<{url: string; me
     }
     return results;
   }
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `Metadata lookup failed (HTTP ${response.status})`);
-  }
-  const data = await response.json() as {results: GitHubDetails[]};
+  const data = await apiJson<{results: GitHubDetails[]}>(response, '/api/analyze');
+  if (!Array.isArray(data.results)) throw new Error('/api/analyze returned JSON but no results list.');
   return data.results.map(detail => {
     const item = resources.find(r => resourceKey(r.url) === resourceKey(detail.url));
     if (!item || detail.error) return {url: detail.url, error: detail.error || 'Unknown URL'};

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, Plus, RefreshCcw, Save, Search, ShieldCheck, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
 import Importer, { fetchMetadata, resourceKey, type Resource } from './Importer';
 import BulkAnalyzer from './BulkAnalyzer';
+import { apiJson } from './apiJson';
 import { cleanHashtag, githubDetailsToResource } from './resourceAnalysis';
 
 type AdminTab = 'resources' | 'import' | 'analyze' | 'publish';
@@ -31,8 +32,8 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
 
   useEffect(() => {
     fetch('/api/me', { credentials: 'same-origin' })
-      .then(r => r.json()).then(data => setOwner(!!data.owner))
-      .catch(() => setOwner(false)).finally(() => setChecked(true));
+      .then(r => apiJson<{owner:boolean}>(r, '/api/me')).then(data => setOwner(!!data.owner))
+      .catch(error => { setOwner(false); setMessage(error instanceof Error ? error.message : 'Unable to verify login.'); }).finally(() => setChecked(true));
     try {
       const saved = sessionStorage.getItem('hub-admin-unsaved-draft');
       if (saved) {
@@ -87,8 +88,8 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       let suggestions: Partial<Resource>;
       if (response.status === 404) suggestions = await fetchMetadata(resource);
       else {
-        const result = await response.json();
-        if (!response.ok || result.results?.[0]?.error) throw new Error(result.error || result.results?.[0]?.error || 'Analysis failed');
+        const result = await apiJson<{error?:string;results?:any[]}>(response, '/api/analyze');
+        if (result.results?.[0]?.error) throw new Error(result.error || result.results?.[0]?.error || 'Analysis failed');
         suggestions = githubDetailsToResource(result.results[0], resource);
       }
       update(resource.url, suggestions);
@@ -125,8 +126,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     setBusy(true); setMessage('Publishing your catalog to GitHub...');
     try {
       const response = await fetch('/api/catalog', { method: 'PUT', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(draft) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'GitHub publishing failed');
+      const result = await apiJson<{error?: string;message?: string}>(response, '/api/catalog');
       onSaved(draft);
       setDraft(draft); setSnapshot(null); setSelected([]); setRestorable(null);
       try { sessionStorage.removeItem('hub-admin-unsaved-draft'); } catch { /* ignore */ }
