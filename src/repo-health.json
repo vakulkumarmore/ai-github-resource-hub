@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "generatedAt": null,
+  "staleThresholdDays": 365,
+  "reviewPolicy": "human_approval_required",
+  "methodology": "Maintenance flags are heuristics, not safety or reputation guarantees. Open issues are not proven security issues. Published security advisories can already be resolved.",
+  "scanned": 0,
+  "failedBatches": 0,
+  "summary": {
+    "total": 0,
+    "reviewCandidates": 0,
+    "stale": 0,
+    "archived": 0,
+    "unavailable": 0,
+    "manyOpenIssues": 0,
+    "publishedAdvisories": 0
+  },
+  "entries": []
+}

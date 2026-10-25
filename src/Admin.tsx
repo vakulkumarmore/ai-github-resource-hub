@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, Plus, RefreshCcw, Save, Search, ShieldCheck, Sparkles, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, Plus, RefreshCcw, Save, Search, ShieldAlert, ShieldCheck, Sparkles, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
 import Importer, { fetchMetadata, resourceKey, type Resource } from './Importer';
 import BulkAnalyzer from './BulkAnalyzer';
+import HealthReview from './HealthReview';
 import { apiJson } from './apiJson';
 import { cleanHashtag, githubDetailsToResource } from './resourceAnalysis';
 
-type AdminTab = 'resources' | 'import' | 'analyze' | 'publish';
+type AdminTab = 'resources' | 'import' | 'analyze' | 'health' | 'publish';
 type ResourceView = 'new' | 'all' | 'edited' | 'published';
 type Props = { publishedCatalog: Resource[]; onSaved: (resources: Resource[]) => void; onBack: () => void };
 const pageSize = 30;
@@ -131,13 +132,14 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       setMessage(error instanceof Error ? error.message : 'Analysis failed');
     } finally { setAnalyzingKey(null); }
   };
-  const remove = (urls: string[]) => {
-    if (!urls.length || !window.confirm(`Remove ${urls.length} resource(s) from your draft? You can undo before publishing.`)) return;
+  const remove = (urls: string[]): boolean => {
+    if (!urls.length || !window.confirm(`Remove ${urls.length} resource(s) from your draft? You can undo before publishing.`)) return false;
     const keys = new Set(urls.map(resourceKey));
     setSnapshot(draft);
     setDraft(prev => prev.filter(r => !keys.has(resourceKey(r.url))));
     setSelected([]); setEditing(null);
     setMessage(`${urls.length} resource(s) removed from your draft. Nothing is public until you publish.`);
+    return true;
   };
   const undo = () => {
     if (!snapshot) return;
@@ -182,9 +184,12 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       <button className={tab === 'resources' ? 'active' : ''} onClick={() => setTab('resources')}><FileUp size={17}/> Resource manager</button>
       <button className={tab === 'import' ? 'active' : ''} onClick={() => setTab('import')}><UploadCloud size={17}/> Bulk importer</button>
       <button className={tab === 'analyze' ? 'active' : ''} onClick={() => setTab('analyze')}><Search size={17}/> Analyze all</button>
+      <button className={tab === 'health' ? 'active' : ''} onClick={() => setTab('health')}><ShieldAlert size={17}/> Health review</button>
       <button className={tab === 'publish' ? 'active' : ''} onClick={() => setTab('publish')}><Save size={17}/> Publishing {dirty && <span className="notification-dot"/>}</button>
     </nav>
     {message && <div className="notice" role="status"><InfoIcon/>{message}<button className="icon-btn" aria-label="Dismiss message" onClick={() => setMessage('')}><X size={15}/></button></div>}
+
+    {tab === 'health' && <HealthReview catalog={draft} onStageRemoval={urls => { if (remove(urls)) { setTab('resources'); setView('all'); setPage(1); } }}/>}
 
     {tab === 'import' && <Importer catalog={draft} onApply={applyImported} onNavigate={() => setTab('resources')}/>}
 
