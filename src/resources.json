@@ -4508,5 +4508,23 @@
     "updatedAt": "2026-10-23T15:25:04Z",
     "homepage": "https://godotengine.org",
     "license": "MIT"
+  },
+  {
+    "id": "jtleek-datasharing",
+    "name": "datasharing",
+    "url": "https://github.com/jtleek/datasharing",
+    "category": "Developer Tools",
+    "description": "The Leek group guide to data sharing ",
+    "oneLiner": "The Leek group guide to data sharing.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository",
+    "language": "",
+    "stars": 6779,
+    "forks": 241529,
+    "updatedAt": "2024-08-07T08:29:32Z"
   }
 ]
