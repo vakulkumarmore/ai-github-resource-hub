@@ -4,48 +4,117 @@
     "name": "Microsoft PowerToys",
     "url": "https://github.com/microsoft/PowerToys",
     "category": "Developer Tools",
-    "description": "Windows utilities for productivity and customization.",
+    "description": "Microsoft PowerToys is a collection of utilities that supercharge productivity and customization on Windows",
     "tags": [
-      "Windows",
-      "Productivity"
+      "advanced-paste",
+      "color-picker",
+      "command-palette",
+      "desktop",
+      "fancyzones",
+      "keyboard-manager",
+      "microsoft-powertoys",
+      "powerrename",
+      "powertoys",
+      "windows",
+      "windows-10",
+      "windows-11"
     ],
-    "language": "C#",
-    "type": "repository"
+    "language": "C",
+    "type": "repository",
+    "stars": 139843,
+    "forks": 8627,
+    "updatedAt": "2026-10-25T03:49:05Z",
+    "license": "MIT",
+    "oneLiner": "Microsoft PowerToys is a collection of utilities that supercharge productivity and customization on Windows.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#advancedpaste",
+      "#colorpicker",
+      "#commandpalette",
+      "#desktop",
+      "#fancyzones"
+    ]
   },
   {
     "id": "langchain-ai-langchain",
     "name": "LangChain",
     "url": "https://github.com/langchain-ai/langchain",
-    "category": "AI & Machine Learning",
-    "description": "Framework for building applications powered by language models.",
+    "category": "Claude",
+    "description": "The agent engineering platform.",
     "tags": [
-      "LLM",
-      "AI"
+      "agents",
+      "ai",
+      "ai-agents",
+      "anthropic",
+      "chatgpt",
+      "deepagents",
+      "enterprise",
+      "framework",
+      "gemini",
+      "generative-ai",
+      "langchain",
+      "langgraph"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 148400,
+    "forks": 24905,
+    "updatedAt": "2026-10-25T03:53:32Z",
+    "license": "MIT",
+    "homepage": "https://docs.langchain.com/langchain/",
+    "oneLiner": "The agent engineering platform.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#agents",
+      "#ai",
+      "#aiagents",
+      "#anthropic"
+    ]
   },
   {
     "id": "anthropics-claude-code",
     "name": "claude-code",
     "url": "https://github.com/anthropics/claude-code",
-    "category": "Automation",
+    "category": "Claude",
     "description": "Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows - all through natural language commands.",
     "tags": [],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 153302,
+    "forks": 26522,
+    "updatedAt": "2026-10-24T02:18:59Z",
+    "homepage": "https://code.claude.com/docs/en/overview",
+    "oneLiner": "Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing…",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#TypeScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "anthropics-skills",
     "name": "skills",
     "url": "https://github.com/anthropics/skills",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "Public repository for Agent Skills",
     "tags": [
       "agent-skills"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 183542,
+    "forks": 21728,
+    "updatedAt": "2026-10-09T18:45:52Z",
+    "oneLiner": "Public repository for Agent Skills.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#agentskills",
+      "#Python",
+      "#OpenSource"
+    ]
   },
   {
     "id": "anthropics-claude-plugins-official",
@@ -59,13 +128,27 @@
       "skills"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 44378,
+    "forks": 4656,
+    "updatedAt": "2026-10-24T07:35:47Z",
+    "license": "Apache-2.0",
+    "homepage": "https://code.claude.com/docs/en/plugins",
+    "oneLiner": "Official, Anthropic-managed directory of high quality Claude Code Plugins.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#mcp",
+      "#skills",
+      "#Python",
+      "#OpenSource"
+    ]
   },
   {
     "id": "obra-superpowers",
     "name": "superpowers",
     "url": "https://github.com/obra/superpowers",
-    "category": "AI & Machine Learning",
+    "category": "AI Agents",
     "description": "An agentic skills framework & software development methodology that works.",
     "tags": [
       "ai",
@@ -73,10 +156,25 @@
       "coding",
       "obra",
       "sdlc",
-      "skills"
+      "skills",
+      "subagent-driven-development",
+      "superpowers"
     ],
     "language": "Shell",
-    "type": "repository"
+    "type": "repository",
+    "stars": 304677,
+    "forks": 27142,
+    "updatedAt": "2026-10-23T03:48:57Z",
+    "license": "MIT",
+    "oneLiner": "An agentic skills framework & software development methodology that works.",
+    "hashtags": [
+      "#AIAgents",
+      "#ai",
+      "#brainstorming",
+      "#coding",
+      "#obra",
+      "#sdlc"
+    ]
   },
   {
     "id": "anthropics-claude-cookbooks",
@@ -86,7 +184,18 @@
     "description": "A collection of notebooks/recipes showcasing some fun and effective ways of using Claude.",
     "tags": [],
     "language": "Jupyter Notebook",
-    "type": "repository"
+    "type": "repository",
+    "stars": 53749,
+    "forks": 6479,
+    "updatedAt": "2026-10-24T18:58:10Z",
+    "license": "MIT",
+    "oneLiner": "A collection of notebooks/recipes showcasing some fun and effective ways of using Claude.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#JupyterNotebook",
+      "#OpenSource"
+    ]
   },
   {
     "id": "anthropics-claude-code-action",
@@ -96,13 +205,24 @@
     "description": "anthropics/claude-code-action",
     "tags": [],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 9637,
+    "forks": 2215,
+    "updatedAt": "2026-10-24T18:57:40Z",
+    "license": "MIT",
+    "oneLiner": "anthropics/claude-code-action.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#TypeScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "hesreallyhim-awesome-claude-code",
     "name": "awesome-claude-code",
     "url": "https://github.com/hesreallyhim/awesome-claude-code",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "A hand-picked collection of the finest of resources for the most awesome of agents, Claude Code, the undisputed champion of coding companions, from the unstoppable team at Anthropic PBC (no affiliation). A delectable showcase of top tier skills, ambidextrous agents, scintillating status lines, top notch developer tooling, and also we have plugins",
     "tags": [
       "agent-skills",
@@ -110,16 +230,34 @@
       "agentic-coding",
       "ai-workflow-optimization",
       "ai-workflows",
-      "anthropic"
+      "anthropic",
+      "anthropic-claude",
+      "awesome",
+      "awesome-claude-code",
+      "awesome-list",
+      "awesome-lists",
+      "awesome-resources"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 56447,
+    "forks": 4863,
+    "updatedAt": "2026-10-25T03:11:54Z",
+    "oneLiner": "A hand-picked collection of the finest of resources for the most awesome of agents, Claude Code, the undisputed champion of coding…",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#agentskills",
+      "#agenticcode",
+      "#agenticcoding",
+      "#aiworkflowoptimization"
+    ]
   },
   {
     "id": "github-github-mcp-server",
     "name": "github-mcp-server",
     "url": "https://github.com/github/github-mcp-server",
-    "category": "MCP",
+    "category": "MCP Servers",
     "description": "GitHub's official MCP Server",
     "tags": [
       "github",
@@ -127,7 +265,20 @@
       "mcp-server"
     ],
     "language": "Go",
-    "type": "repository"
+    "type": "repository",
+    "stars": 33932,
+    "forks": 5225,
+    "updatedAt": "2026-10-23T21:21:33Z",
+    "license": "MIT",
+    "oneLiner": "GitHub's official MCP Server.",
+    "hashtags": [
+      "#mcp",
+      "#AIIntegration",
+      "#github",
+      "#mcpserver",
+      "#Go",
+      "#OpenSource"
+    ]
   },
   {
     "id": "anthropics-claude-quickstarts",
@@ -137,23 +288,45 @@
     "description": "A collection of projects designed to help developers quickly get started with building deployable applications using the Claude API",
     "tags": [],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 18982,
+    "forks": 3240,
+    "updatedAt": "2026-10-23T15:15:06Z",
+    "license": "MIT",
+    "oneLiner": "A collection of projects designed to help developers quickly get started with building deployable applications using the Claude API.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#TypeScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "anthropics-claude-agent-sdk-python",
     "name": "claude-agent-sdk-python",
     "url": "https://github.com/anthropics/claude-agent-sdk-python",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "anthropics/claude-agent-sdk-python",
     "tags": [],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 8346,
+    "forks": 1374,
+    "updatedAt": "2026-10-24T00:28:18Z",
+    "license": "MIT",
+    "oneLiner": "anthropics/claude-agent-sdk-python.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#Python",
+      "#OpenSource"
+    ]
   },
   {
     "id": "1jehuang-jcode",
     "name": "jcode",
     "url": "https://github.com/1jehuang/jcode",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "High performance coding agent harness written in Rust, built for heavy multi-agent dev workflows",
     "tags": [
       "ai",
@@ -161,16 +334,36 @@
       "ai-coding-agent",
       "claude",
       "cli",
-      "coding-agent"
+      "coding-agent",
+      "llm",
+      "mcp",
+      "openai",
+      "rust",
+      "terminal",
+      "tui"
     ],
     "language": "Rust",
-    "type": "repository"
+    "type": "repository",
+    "stars": 21188,
+    "forks": 2456,
+    "updatedAt": "2026-10-25T03:33:54Z",
+    "license": "MIT",
+    "homepage": "https://jcode.sh",
+    "oneLiner": "High performance coding agent harness written in Rust, built for heavy multi-agent dev workflows.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#ai",
+      "#aiagent",
+      "#aicodingagent",
+      "#claude"
+    ]
   },
   {
     "id": "d4vinci-scrapling",
     "name": "Scrapling",
     "url": "https://github.com/D4Vinci/Scrapling",
-    "category": "AI & Machine Learning",
+    "category": "MCP Servers",
     "description": "🕷️ A Web Scraping framework that handles everything from a single request to a full-scale crawl! Don't be shy, join here: https://discord.gg/EMgGbDceNQ and follow here for daily tips and tricks: https://x.com/Scrapling_dev",
     "tags": [
       "ai",
@@ -178,26 +371,56 @@
       "automation",
       "crawler",
       "crawling",
-      "crawling-python"
+      "crawling-python",
+      "data",
+      "data-extraction",
+      "mcp",
+      "mcp-server",
+      "playwright",
+      "python"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 89522,
+    "forks": 9243,
+    "updatedAt": "2026-10-22T20:43:49Z",
+    "license": "BSD-3-Clause",
+    "homepage": "https://scrapling.readthedocs.io/en/latest/",
+    "oneLiner": "🕷️ A Web Scraping framework that handles everything from a single request to a full-scale crawl!",
+    "hashtags": [
+      "#mcp",
+      "#AIIntegration",
+      "#ai",
+      "#aiscraping",
+      "#automation",
+      "#crawler"
+    ]
   },
   {
     "id": "dannymac180-sol-advisor",
     "name": "sol-advisor",
     "url": "https://github.com/DannyMac180/sol-advisor",
-    "category": "Uncategorized",
+    "category": "Automation",
     "description": "Codex-native architect orchestration with Luna and Terra implementation lanes and mandatory fresh Sol review.",
     "tags": [],
     "language": "Shell",
-    "type": "repository"
+    "type": "repository",
+    "stars": 2616,
+    "forks": 214,
+    "updatedAt": "2026-08-16T13:24:31Z",
+    "license": "MIT",
+    "oneLiner": "Codex-native architect orchestration with Luna and Terra implementation lanes and mandatory fresh Sol review.",
+    "hashtags": [
+      "#Automation",
+      "#Shell",
+      "#OpenSource"
+    ]
   },
   {
     "id": "graphify-labs-graphify",
     "name": "graphify",
     "url": "https://github.com/Graphify-Labs/graphify",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "Turn any codebase, with its docs, SQL schemas, configs, and PDFs, into a queryable knowledge graph. A /graphify skill for Claude Code, Cursor, Codex, and Gemini CLI: local deterministic AST parsing, every edge explained, no vector store.",
     "tags": [
       "ai-agents",
@@ -205,32 +428,74 @@
       "ast",
       "claude-code",
       "code-analysis",
-      "code-search"
+      "code-search",
+      "codex",
+      "cursor",
+      "developer-tools",
+      "gemini",
+      "graphify",
+      "graphrag"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 134539,
+    "forks": 12839,
+    "updatedAt": "2026-10-23T17:59:28Z",
+    "license": "Apache-2.0",
+    "homepage": "https://www.graphify.com",
+    "oneLiner": "Turn any codebase, with its docs, SQL schemas, configs, and PDFs, into a queryable knowledge graph.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#aiagents",
+      "#antigravity",
+      "#ast",
+      "#codeanalysis"
+    ]
   },
   {
     "id": "jaycheng113-skill-retrieval-mcp",
     "name": "skill-retrieval-mcp",
     "url": "https://github.com/JayCheng113/skill-retrieval-mcp",
-    "category": "Uncategorized",
+    "category": "MCP Servers",
     "description": "JayCheng113/skill-retrieval-mcp",
     "tags": [],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 134,
+    "forks": 23,
+    "updatedAt": "2026-08-27T06:39:50Z",
+    "license": "MIT",
+    "oneLiner": "JayCheng113/skill-retrieval-mcp.",
+    "hashtags": [
+      "#MCP",
+      "#AIIntegration",
+      "#Python",
+      "#OpenSource"
+    ]
   },
   {
     "id": "traderalice-openalice",
     "name": "OpenAlice",
     "url": "https://github.com/TraderAlice/OpenAlice",
-    "category": "AI & Machine Learning",
+    "category": "AI Agents",
     "description": "Your one-person Wall Street. An AI trading agent covering equities, crypto, commodities, forex, and macro — from research through position entry, ongoing management, to exit.",
     "tags": [
       "AI"
     ],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 7370,
+    "forks": 1155,
+    "updatedAt": "2026-10-24T01:44:55Z",
+    "license": "AGPL-3.0",
+    "homepage": "https://openalice.ai",
+    "oneLiner": "Your one-person Wall Street.",
+    "hashtags": [
+      "#AIAgents",
+      "#TypeScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "abi-screenshot-to-code",
@@ -240,13 +505,24 @@
     "description": "Drop in a screenshot and convert it to clean code (HTML/Tailwind/React/Vue)",
     "tags": [],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 80698,
+    "forks": 9865,
+    "updatedAt": "2026-10-09T20:02:05Z",
+    "license": "MIT",
+    "homepage": "https://screenshottocode.com",
+    "oneLiner": "Drop in a screenshot and convert it to clean code (HTML/Tailwind/React/Vue).",
+    "hashtags": [
+      "#WebDevelopment",
+      "#Python",
+      "#OpenSource"
+    ]
   },
   {
     "id": "asgeirtj-system_prompts_leaks",
     "name": "system_prompts_leaks",
     "url": "https://github.com/asgeirtj/system_prompts_leaks",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "Documented system prompts from Anthropic - Claude Fable 5.1, Opus 5.5, Claude Design, Claude Code. OpenAI - ChatGPT GPT-6-Astra, Codex. Google - Gemini 3.8 Flash, 3.1 Pro, Antigravity. xAI - Grok, Grok Bot, Cursor, Kimi and more! Updated regularly.",
     "tags": [
       "ai",
@@ -254,16 +530,35 @@
       "ai-prompts",
       "anthropic",
       "chatbot",
-      "chatgpt"
+      "chatgpt",
+      "claude",
+      "claude-code",
+      "codex",
+      "cursor",
+      "gemini",
+      "generative-ai"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 70156,
+    "forks": 11368,
+    "updatedAt": "2026-10-24T05:25:09Z",
+    "license": "CC0-1.0",
+    "oneLiner": "Documented system prompts from Anthropic - Claude Fable 5.1, Opus 5.5, Claude Design, Claude Code.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#ai",
+      "#aiagents",
+      "#aiprompts",
+      "#anthropic"
+    ]
   },
   {
     "id": "blader-humanizer",
     "name": "humanizer",
     "url": "https://github.com/blader/humanizer",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "Agent skill that removes signs of AI-generated writing from text",
     "tags": [
       "agent-skills",
@@ -271,16 +566,36 @@
       "ai-writing",
       "chatgpt",
       "claude",
-      "claude-code"
+      "claude-code",
+      "codex",
+      "cursor",
+      "humanize-ai-text",
+      "humanizer",
+      "llm",
+      "prompt-engineering"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 60303,
+    "forks": 4782,
+    "updatedAt": "2026-10-16T19:12:03Z",
+    "license": "MIT",
+    "homepage": "https://skills.sh/blader/humanizer",
+    "oneLiner": "Agent skill that removes signs of AI-generated writing from text.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#agentskills",
+      "#aihumanizer",
+      "#aiwriting",
+      "#chatgpt"
+    ]
   },
   {
     "id": "diegosouzapw-omniroute",
     "name": "OmniRoute",
     "url": "https://github.com/diegosouzapw/OmniRoute",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "Never stop coding. Free MIT AI gateway: one endpoint, 375 providers (150+ free), 1,400+ models Kimi, Claude, GPT, Gemini, GLM, DeepSeek, MiniMax. Works with Claude Code, Codex, Cursor, OpenCode, Cline & Copilot. Quota-aware auto-fallback, RTK+Caveman compression saves 15-95% tokens, MCP/A2A, Desktop/PWA. Built by 900+ contributors",
     "tags": [
       "a2a",
@@ -288,26 +603,57 @@
       "ai-gateway",
       "anthropic",
       "claude",
-      "claude-code"
+      "claude-code",
+      "cline",
+      "codex",
+      "copilot",
+      "cursor",
+      "deepseek",
+      "free-ai"
     ],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 80812,
+    "forks": 11811,
+    "updatedAt": "2026-10-25T03:06:36Z",
+    "license": "MIT",
+    "homepage": "https://omniroute.online",
+    "oneLiner": "Never stop coding.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#a2a",
+      "#aiagents",
+      "#aigateway",
+      "#anthropic"
+    ]
   },
   {
     "id": "emilkowalski-skills",
     "name": "skills",
     "url": "https://github.com/emilkowalski/skills",
-    "category": "Uncategorized",
+    "category": "Developer Tools",
     "description": "Skills for Designers and Engineers.",
     "tags": [],
     "language": "Markdown",
-    "type": "repository"
+    "type": "repository",
+    "stars": 49405,
+    "forks": 2877,
+    "updatedAt": "2026-10-11T13:58:36Z",
+    "license": "MIT",
+    "homepage": "https://emilkowal.ski/skill",
+    "oneLiner": "Skills for Designers and Engineers.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#Markdown",
+      "#OpenSource"
+    ]
   },
   {
     "id": "gitroomhq-postiz-app",
     "name": "postiz-app",
     "url": "https://github.com/gitroomhq/postiz-app",
-    "category": "Web Development",
+    "category": "AI Agents",
     "description": "📨 The ultimate agentic social media scheduling tool 🤖",
     "tags": [
       "nextjs",
@@ -315,16 +661,34 @@
       "open-source-social-media-scheduling-tool",
       "oss",
       "postiz-cloud",
-      "postiz-hosted"
+      "postiz-hosted",
+      "redis",
+      "scheduling-tool",
+      "social-media-scheduling-tool",
+      "typescript"
     ],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 37732,
+    "forks": 7369,
+    "updatedAt": "2026-10-24T18:27:21Z",
+    "license": "AGPL-3.0",
+    "homepage": "https://postiz.com",
+    "oneLiner": "📨 The ultimate agentic social media scheduling tool 🤖.",
+    "hashtags": [
+      "#AIAgents",
+      "#nextjs",
+      "#OpenSource",
+      "#opensourcesocialmediaschedulingt",
+      "#oss",
+      "#postizcloud"
+    ]
   },
   {
     "id": "headroomlabs-ai-headroom",
     "name": "headroom",
     "url": "https://github.com/headroomlabs-ai/headroom",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "Compress tool outputs, logs, files, and RAG chunks before they reach the LLM. 20% fewer tokens for coding agents, 60-95% fewer tokens for JSON, same answers. Library, proxy, MCP server.",
     "tags": [
       "agent",
@@ -332,16 +696,36 @@
       "anthropic",
       "claude-code",
       "compression",
-      "context-engineering"
+      "context-engineering",
+      "context-window",
+      "cursor",
+      "fastapi",
+      "langchain",
+      "llm",
+      "mcp"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 77737,
+    "forks": 6038,
+    "updatedAt": "2026-10-24T19:15:37Z",
+    "license": "Apache-2.0",
+    "homepage": "https://docs.headroomlabs.ai/docs",
+    "oneLiner": "Compress tool outputs, logs, files, and RAG chunks before they reach the LLM. 20% fewer tokens for coding agents, 60-95% fewer tokens for…",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#agent",
+      "#ai",
+      "#anthropic",
+      "#compression"
+    ]
   },
   {
     "id": "mathiaschu-watch",
     "name": "watch",
     "url": "https://github.com/mathiaschu/watch",
-    "category": "Uncategorized",
+    "category": "Claude",
     "description": "Give Claude a video input. /watch downloads from YouTube/Instagram/X/Vimeo/any yt-dlp site, extracts frames, and transcribes locally with mlx-whisper — no API key. Fork of bradautomates/claude-video.",
     "tags": [
       "claude",
@@ -349,16 +733,31 @@
       "claude-skill",
       "mlx",
       "transcription",
-      "video"
+      "video",
+      "whisper",
+      "yt-dlp"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 144,
+    "forks": 20,
+    "updatedAt": "2026-05-29T17:27:05Z",
+    "license": "MIT",
+    "oneLiner": "Give Claude a video input. /watch downloads from YouTube/Instagram/X/Vimeo/any yt-dlp site, extracts frames, and transcribes locally with…",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#claude",
+      "#claudeskill",
+      "#mlx",
+      "#transcription"
+    ]
   },
   {
     "id": "microsoft-power-platform-skills",
     "name": "power-platform-skills",
     "url": "https://github.com/microsoft/power-platform-skills",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "A plugin marketplace for GitHub Copilot and other AI agents that provides Power Platform development plugins, including reusable skills, agents, and commands for building and deploying solutions.",
     "tags": [
       "claude-code-plugin",
@@ -366,26 +765,52 @@
       "code-apps",
       "github-copilot-plugin",
       "power-apps",
-      "power-pages"
+      "power-pages",
+      "power-platform"
     ],
     "language": "JavaScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 1053,
+    "forks": 211,
+    "updatedAt": "2026-10-25T03:58:12Z",
+    "license": "MIT",
+    "homepage": "https://aka.ms/ppskills",
+    "oneLiner": "A plugin marketplace for GitHub Copilot and other AI agents that provides Power Platform development plugins, including reusable skills…",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#claudecodeplugin",
+      "#claudecodeskills",
+      "#codeapps",
+      "#githubcopilotplugin"
+    ]
   },
   {
     "id": "modelcontextprotocol-servers",
     "name": "servers",
     "url": "https://github.com/modelcontextprotocol/servers",
-    "category": "AI & Machine Learning",
+    "category": "MCP Servers",
     "description": "Model Context Protocol Servers",
     "tags": [],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 91546,
+    "forks": 11858,
+    "updatedAt": "2026-10-25T00:03:20Z",
+    "homepage": "https://modelcontextprotocol.io",
+    "oneLiner": "Model Context Protocol Servers.",
+    "hashtags": [
+      "#MCP",
+      "#AIIntegration",
+      "#TypeScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "mukul975-anthropic-cybersecurity-skills",
     "name": "Anthropic-Cybersecurity-Skills",
     "url": "https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "817 structured cybersecurity skills for AI agents · Mapped to 6 frameworks: MITRE ATT&CK, NIST CSF 2.0, MITRE ATLAS, D3FEND, NIST AI RMF & MITRE F3 (Fight Fraud) · agentskills.io standard · Works with Claude Code, GitHub Copilot, Codex CLI, Cursor, Gemini CLI & 20+ platforms · 29 security domains · Apache 2.0",
     "tags": [
       "ai-agents",
@@ -393,46 +818,97 @@
       "cloud-security",
       "cybersecurity",
       "devsecops",
-      "ethical-hacking"
+      "ethical-hacking",
+      "incident-response",
+      "infosec",
+      "llm",
+      "malware-analysis",
+      "mcp",
+      "mitre-attack"
     ],
     "language": "Python",
-    "type": "repository"
+    "type": "repository",
+    "stars": 34959,
+    "forks": 4258,
+    "updatedAt": "2026-08-31T04:32:44Z",
+    "license": "Apache-2.0",
+    "homepage": "https://mahipal.engineer/Anthropic-Cybersecurity-Skills/",
+    "oneLiner": "817 structured cybersecurity skills for AI agents · Mapped to 6 frameworks: MITRE ATT&CK, NIST CSF 2.0, MITRE ATLAS, D3FEND, NIST AI RMF &…",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#aiagents",
+      "#cloudsecurity",
+      "#cybersecurity",
+      "#devsecops"
+    ]
   },
   {
     "id": "multica-ai-andrej-karpathy-skills",
     "name": "andrej-karpathy-skills",
     "url": "https://github.com/multica-ai/andrej-karpathy-skills",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "A single CLAUDE.md file to improve Claude Code behavior, derived from Andrej Karpathy's observations on LLM coding pitfalls.",
     "tags": [],
     "language": "",
-    "type": "repository"
+    "type": "repository",
+    "stars": 223424,
+    "forks": 22381,
+    "updatedAt": "2026-04-20T10:05:04Z",
+    "oneLiner": "A single CLAUDE.md file to improve Claude Code behavior, derived from Andrej Karpathy's observations on LLM coding pitfalls.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#OpenSource"
+    ]
   },
   {
     "id": "mshumer-claude-of-duty",
     "name": "Claude-of-Duty",
     "url": "https://github.com/mshumer/Claude-of-Duty",
-    "category": "Uncategorized",
+    "category": "Claude",
     "description": "A Call of Duty-quality FPS in Three.js, built from a single prompt.",
     "tags": [],
     "language": "JavaScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 3488,
+    "forks": 532,
+    "updatedAt": "2026-07-25T19:38:53Z",
+    "license": "MIT",
+    "oneLiner": "A Call of Duty-quality FPS in Three.js, built from a single prompt.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#JavaScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "openai-codex-plugin-cc",
     "name": "codex-plugin-cc",
     "url": "https://github.com/openai/codex-plugin-cc",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "Use Codex from Claude Code to review code or delegate tasks.",
     "tags": [],
     "language": "JavaScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 34542,
+    "forks": 2386,
+    "updatedAt": "2026-07-08T00:17:31Z",
+    "license": "Apache-2.0",
+    "oneLiner": "Use Codex from Claude Code to review code or delegate tasks.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#JavaScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "ruvnet-ruflo",
     "name": "ruflo",
     "url": "https://github.com/ruvnet/ruflo",
-    "category": "AI & Machine Learning",
+    "category": "Claude",
     "description": "🌊 The original agent harness. Deploy intelligent multi-player swarms, coordinate autonomous workflows, and build conversational AI systems. Features adaptive memory, self-learning intelligence, federation, vector RAG integration, and native Claude Code / Codex / Hermes and many more Integrated",
     "tags": [
       "agentic-ai",
@@ -440,16 +916,36 @@
       "agentic-workflow",
       "agents",
       "ai-agents",
-      "ai-assistant"
+      "ai-assistant",
+      "ai-skills",
+      "autonomous-agents",
+      "claude",
+      "codex",
+      "dsh-plugin",
+      "harness"
     ],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 79075,
+    "forks": 9285,
+    "updatedAt": "2026-10-25T03:49:51Z",
+    "license": "MIT",
+    "homepage": "https://Cognitum.One",
+    "oneLiner": "🌊 The original agent harness.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#ClaudeCode",
+      "#agenticai",
+      "#agenticframework",
+      "#agenticworkflow",
+      "#agents"
+    ]
   },
   {
     "id": "truefoundry-trueforge",
     "name": "trueforge",
     "url": "https://github.com/truefoundry/trueforge",
-    "category": "AI & Machine Learning",
+    "category": "AI Agents",
     "description": "The open-source agent harness - the runtime layer that turns an LLM into a working agent.",
     "tags": [
       "agent",
@@ -459,13 +955,27 @@
       "harness-engineering"
     ],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 6355,
+    "forks": 536,
+    "updatedAt": "2026-10-24T16:54:18Z",
+    "license": "MIT",
+    "homepage": "https://trueforge.dev",
+    "oneLiner": "The open-source agent harness - the runtime layer that turns an LLM into a working agent.",
+    "hashtags": [
+      "#AIAgents",
+      "#agent",
+      "#agenticai",
+      "#agents",
+      "#harness",
+      "#harnessengineering"
+    ]
   },
   {
     "id": "upstash-context7",
     "name": "context7",
     "url": "https://github.com/upstash/context7",
-    "category": "AI & Machine Learning",
+    "category": "MCP Servers",
     "description": "Context7 Platform -- Up-to-date docs for AI agents",
     "tags": [
       "llm",
@@ -474,25 +984,51 @@
       "vibe-coding"
     ],
     "language": "TypeScript",
-    "type": "repository"
+    "type": "repository",
+    "stars": 63622,
+    "forks": 3136,
+    "updatedAt": "2026-10-23T13:48:26Z",
+    "license": "MIT",
+    "homepage": "https://context7.com",
+    "oneLiner": "Context7 Platform -- Up-to-date docs for AI agents.",
+    "hashtags": [
+      "#mcp",
+      "#AIIntegration",
+      "#llm",
+      "#mcpserver",
+      "#vibecoding",
+      "#TypeScript"
+    ]
   },
   {
     "id": "cpor-profile",
     "name": "cpor",
     "url": "https://github.com/cpor",
-    "category": "Uncategorized",
+    "category": "Developer Tools",
     "description": "GitHub profile for cpor.",
     "tags": [],
-    "type": "profile"
+    "type": "profile",
+    "updatedAt": "2016-04-12T18:41:46Z",
+    "oneLiner": "Explore the cpor project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ]
   },
   {
     "id": "cport-profile",
     "name": "cport",
     "url": "https://github.com/cport",
-    "category": "Uncategorized",
+    "category": "Developer Tools",
     "description": "GitHub profile for cport.",
     "tags": [],
-    "type": "profile"
+    "type": "profile",
+    "updatedAt": "2020-06-17T12:41:23Z",
+    "oneLiner": "Explore the Frank Liu project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ]
   },
   {
     "id": "cporter202-marketing-apis-that-drive-roi",
@@ -508,13 +1044,26 @@
       "attribution",
       "awesome-list",
       "brand-monitoring",
-      "content-marketing"
+      "content-marketing",
+      "developers",
+      "digital-marketing",
+      "marketing",
+      "roi"
     ],
     "type": "repository",
     "language": "",
-    "stars": 45,
-    "forks": 11,
-    "updatedAt": "2026-10-20T04:13:05Z"
+    "stars": 50,
+    "forks": 12,
+    "updatedAt": "2026-10-20T04:13:05Z",
+    "oneLiner": "This GitHub repo is a powerhouse collection of marketing APIs you can start using immediately to drive measurable ROI — ads, SEO…",
+    "hashtags": [
+      "#DataAnalytics",
+      "#advertising",
+      "#analytics",
+      "#apify",
+      "#apis",
+      "#attribution"
+    ]
   },
   {
     "id": "reticlehq-reticle",
@@ -530,19 +1079,33 @@
       "ai-testing-tool",
       "automated-testing",
       "claude-code",
-      "claude-skills"
+      "claude-skills",
+      "hacktoberfest",
+      "hacktoberfest-accepted",
+      "hacktoberfest2026",
+      "jev"
     ],
     "type": "repository",
     "language": "TypeScript",
     "stars": 1270,
     "forks": 230,
-    "updatedAt": "2026-10-25T03:03:09Z"
+    "updatedAt": "2026-10-25T03:20:55Z",
+    "homepage": "https://app.reticle.sh",
+    "oneLiner": "AI agents can generate code, but still struggle to understand what they build.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#agentskill",
+      "#agentskills",
+      "#agenttesting",
+      "#agentverification"
+    ]
   },
   {
     "id": "ibelick-ui-skills",
     "name": "ui-skills",
     "url": "https://github.com/ibelick/ui-skills",
-    "category": "Skills",
+    "category": "Developer Tools",
     "description": "Skills for Design Engineers",
     "tags": [
       "skills",
@@ -550,9 +1113,19 @@
     ],
     "type": "repository",
     "language": "TypeScript",
-    "stars": 10140,
+    "stars": 10141,
     "forks": 475,
-    "updatedAt": "2026-10-20T21:11:08Z"
+    "updatedAt": "2026-10-20T21:11:08Z",
+    "license": "MIT",
+    "homepage": "https://www.ui-skills.com/",
+    "oneLiner": "Skills for Design Engineers.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#skills",
+      "#uiskills",
+      "#TypeScript",
+      "#OpenSource"
+    ]
   },
   {
     "id": "jaypokale-chisle",
@@ -568,13 +1141,28 @@
       "claude",
       "claude-ai",
       "claude-code",
-      "claude-code-skill"
+      "claude-code-skill",
+      "claude-code-skills",
+      "claude-plugin",
+      "claude-skills",
+      "codex"
     ],
     "type": "repository",
     "language": "JavaScript",
     "stars": 714,
     "forks": 49,
-    "updatedAt": "2026-10-24T04:48:37Z"
+    "updatedAt": "2026-10-24T04:48:37Z",
+    "license": "MIT",
+    "homepage": "https://chisle.jaypokale.me",
+    "oneLiner": "Cut your AI coding agent's token bill on three axes: terse prose, YAGNI-first code, and tool-output compression.",
+    "hashtags": [
+      "#claudeai",
+      "#claudecode",
+      "#agentskills",
+      "#anthropic",
+      "#caveman",
+      "#cavemanalternative"
+    ]
   },
   {
     "id": "nvidia-skillspector",
@@ -590,12 +1178,26 @@
       "claude-code",
       "mcp",
       "prompt-injection",
-      "security-scanner"
+      "security-scanner",
+      "security-tools",
+      "security-workflow",
+      "supply-chain-security"
     ],
     "type": "repository",
     "language": "Python",
-    "stars": 21355,
+    "stars": 21363,
     "forks": 1883,
-    "updatedAt": "2026-10-23T09:40:29Z"
+    "updatedAt": "2026-10-23T09:40:29Z",
+    "license": "Apache-2.0",
+    "homepage": "https://docs.nvidia.com/skills/scanning-agent-skills",
+    "oneLiner": "Security scanner for AI agent skills.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#agentsecurity",
+      "#agentskills",
+      "#agenticai",
+      "#aisecurity"
+    ]
   }
 ]
