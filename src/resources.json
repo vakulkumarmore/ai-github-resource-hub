@@ -6984,5 +6984,55 @@
     "forks": 22717,
     "updatedAt": "2026-10-21T01:01:31Z",
     "license": "MIT"
+  },
+  {
+    "id": "earendil-works-pi",
+    "name": "pi",
+    "url": "https://github.com/earendil-works/pi",
+    "category": "AI Agents",
+    "description": "AI agent toolkit: unified LLM API, agent loop, TUI, coding agent CLI",
+    "oneLiner": "AI agent toolkit: unified LLM API, agent loop, TUI, coding agent CLI.",
+    "hashtags": [
+      "#AIAgents",
+      "#TypeScript",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository",
+    "language": "TypeScript",
+    "stars": 117656,
+    "forks": 15064,
+    "updatedAt": "2026-10-24T20:50:21Z",
+    "license": "MIT"
+  },
+  {
+    "id": "tauricresearch-tradingagents",
+    "name": "TradingAgents",
+    "url": "https://github.com/TauricResearch/TradingAgents",
+    "category": "AI Agents",
+    "description": "TradingAgents: Multi-Agents LLM Financial Trading Framework",
+    "oneLiner": "TradingAgents: Multi-Agents LLM Financial Trading Framework.",
+    "hashtags": [
+      "#AIAgents",
+      "#agent",
+      "#finance",
+      "#llm",
+      "#multiagent",
+      "#trading"
+    ],
+    "tags": [
+      "agent",
+      "finance",
+      "llm",
+      "multiagent",
+      "trading"
+    ],
+    "type": "repository",
+    "language": "Python",
+    "stars": 113783,
+    "forks": 22040,
+    "updatedAt": "2026-10-16T21:38:46Z",
+    "homepage": "https://arxiv.org/pdf/2412.20138",
+    "license": "Apache-2.0"
   }
 ]
