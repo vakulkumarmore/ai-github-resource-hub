@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowRight, Check, Download, ExternalLink, Github, Info, LoaderCircle, Plus, Search, Sparkles, UploadCloud } from 'lucide-react';
+import { categorize, cleanHashtag, githubDetailsToResource, makeOneLiner, suggestHashtags, type GitHubDetails } from './resourceAnalysis';
 
 export type Resource = {
   id: string;
@@ -15,6 +16,12 @@ export type Resource = {
   updatedAt?: string;
   /** Optional manually chosen HTTPS project cover or logo URL. */
   imageUrl?: string;
+  /** Short editorial summary displayed on public resource cards. */
+  oneLiner?: string;
+  /** Suggested social tags. Owner can edit these before publishing. */
+  hashtags?: string[];
+  homepage?: string;
+  license?: string;
 };
 
 export const resourceKey = (url: string) => url.toLowerCase().replace(/\/+$/, '').replace(/\.git$/, '');
@@ -56,8 +63,10 @@ export function starterResource(link: ParsedLink): Resource {
     id: `${link.owner}-${link.repo || 'profile'}`.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     name: label,
     url: link.url,
-    category: suggestCategory(`${link.owner} ${label}`),
+    category: categorize({ name: label, url: link.url }),
     description: link.repo ? `GitHub repository by ${link.owner}.` : `GitHub profile for ${link.owner}.`,
+    oneLiner: makeOneLiner('', label),
+    hashtags: suggestHashtags({name: label, category: categorize({name: label, url: link.url}), topics: []}),
     tags: [],
     type: link.repo ? 'repository' : 'profile',
   };
@@ -68,18 +77,34 @@ export async function fetchMetadata(resource: Resource): Promise<Partial<Resourc
   const endpoint = parts[1] ? `repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}` : `users/${encodeURIComponent(parts[0])}`;
   const response = await fetch(`https://api.github.com/${endpoint}`, { headers: { Accept: 'application/vnd.github+json' } });
   if (!response.ok) throw new Error(response.status === 403 ? 'GitHub API rate limit reached. Try later.' : `GitHub returned ${response.status}`);
-  const data = await response.json();
-  const name = data.name || resource.name;
-  const description = data.description || data.bio || resource.description;
-  const tags = Array.isArray(data.topics) ? data.topics.slice(0, 8) : resource.tags;
-  return {
-    name, description, tags,
-    category: suggestCategory([name, description, parts.join(' '), ...tags].join(' ')),
-    language: data.language || resource.language || '',
-    stars: typeof data.stargazers_count === 'number' ? data.stargazers_count : undefined,
-    forks: typeof data.forks_count === 'number' ? data.forks_count : undefined,
-    updatedAt: data.pushed_at || data.updated_at || undefined,
-  };
+  return githubDetailsToResource(await response.json() as GitHubDetails, resource);
+}
+
+/** Prefer an authenticated same-origin Worker for batches; keep browser fallback for incremental rollout. */
+async function fetchBatch(resources: Resource[]): Promise<Array<{url: string; metadata?: Partial<Resource>; error?: string}>> {
+  const response = await fetch('/api/analyze', {
+    method: 'POST', credentials: 'same-origin', headers: {'content-type': 'application/json'},
+    body: JSON.stringify({urls: resources.map(r => r.url)}),
+  });
+  if (response.status === 404) {
+    // Frontend deployed before the Worker upgrade. Public GitHub requests are more limited.
+    const results = [];
+    for (const resource of resources) {
+      try { results.push({url: resource.url, metadata: await fetchMetadata(resource)}); }
+      catch (error) { results.push({url: resource.url, error: error instanceof Error ? error.message : 'Lookup failed'}); }
+    }
+    return results;
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Metadata lookup failed (HTTP ${response.status})`);
+  }
+  const data = await response.json() as {results: GitHubDetails[]};
+  return data.results.map(detail => {
+    const item = resources.find(r => resourceKey(r.url) === resourceKey(detail.url));
+    if (!item || detail.error) return {url: detail.url, error: detail.error || 'Unknown URL'};
+    return {url: detail.url, metadata: githubDetailsToResource(detail, item)};
+  });
 }
 
 type Props = { catalog: Resource[]; onApply: (items: Resource[]) => void; onNavigate?: () => void };
@@ -92,13 +117,15 @@ export default function Importer({ catalog, onApply, onNavigate }: Props) {
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(20);
   const [errors, setErrors] = useState(0);
+  const [analyzed, setAnalyzed] = useState<string[]>([]);
+  const [progress, setProgress] = useState('');
   const preview = useMemo(() => items.filter(r => [r.name, r.url, r.category].join(' ').toLowerCase().includes(query.toLowerCase())), [items, query]);
   const eligible = useMemo(() => {
     const known = new Set(catalog.map(r => resourceKey(r.url)));
     return items.filter(r => !known.has(resourceKey(r.url)));
   }, [items, catalog]);
 
-  const analyze = () => {
+  const analyze = async () => {
     const links = parseGitHubLinks(raw);
     if (!links.length) { setStatus('Paste valid github.com repository or profile URLs first.'); return; }
     const known = new Set(catalog.map(r => resourceKey(r.url)));
@@ -108,24 +135,40 @@ export default function Importer({ catalog, onApply, onNavigate }: Props) {
     setApplied(false);
     setLimit(20);
     setErrors(0);
-    setStatus(`${newItems.length} new links added to the import preview. ${links.length - newItems.length} already in the catalog or preview.`);
+    setStatus(`${newItems.length} new links staged. ${links.length - newItems.length} already listed. Fetching GitHub details and suggested summaries for the first batch…`);
+    if (newItems.length) await analyzeItems(newItems.slice(0, 10));
   };
 
-  const enrich = async () => {
-    const pending = items.filter(r => !r.updatedAt && r.type !== 'profile').slice(0, 10);
-    if (!pending.length) { setStatus('No additional repository details to fetch in this batch.'); return; }
+  const analyzeItems = async (pending: Resource[]) => {
+    if (!pending.length) return;
     setBusy(true);
     let successes = 0, failures = 0;
-    for (const r of pending) {
-      try {
-        const meta = await fetchMetadata(r);
-        setItems(existing => existing.map(item => resourceKey(item.url) === resourceKey(r.url) ? { ...item, ...meta } : item));
-        successes++;
-      } catch { failures++; }
-    }
-    setErrors(n => n + failures);
-    setStatus(`Metadata updated for ${successes} links. ${failures ? `${failures} lookups failed or were rate-limited.` : 'Ready to add to your manager.'}`);
-    setBusy(false);
+    let processed = 0;
+    try {
+      for (let i = 0; i < pending.length; i += 10) {
+        const batch = pending.slice(i, i + 10);
+        const results = await fetchBatch(batch);
+        for (const result of results) {
+          if (result.metadata) {
+            setItems(old => old.map(item => resourceKey(item.url) === resourceKey(result.url) ? { ...item, ...result.metadata } : item));
+            setAnalyzed(old => [...new Set([...old, resourceKey(result.url)])]);
+            successes++;
+          } else failures++;
+        }
+        processed += batch.length;
+        setProgress(`${processed} of ${pending.length} in this run`);
+      }
+      setErrors(old => old + failures);
+      setStatus(`Analyzed ${successes} links with GitHub metadata, suggested categories, hashtags and one-liners.${failures ? ` ${failures} failed; you can retry.` : ''} Review the suggestions before publishing.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Analysis failed. Your staged URLs are safe.');
+    } finally { setBusy(false); }
+  };
+  const enrich = async (all = false) => {
+    const done = new Set(analyzed);
+    const pending = items.filter(r => !done.has(resourceKey(r.url)));
+    if (!pending.length) { setStatus('All staged links have been analyzed.'); return; }
+    await analyzeItems(all ? pending : pending.slice(0, 10));
   };
   const update = (url: string, patch: Partial<Resource>) => setItems(old => old.map(r => r.url === url ? { ...r, ...patch } : r));
   const apply = () => {
@@ -149,19 +192,19 @@ export default function Importer({ catalog, onApply, onNavigate }: Props) {
     <label className="field-label" htmlFor="import-input">GitHub URLs</label>
     <textarea id="import-input" className="import-textarea" rows={6} value={raw} onChange={e => setRaw(e.target.value)} placeholder={'https://github.com/anthropics/claude-code\nhttps://github.com/ollama/ollama\nhttps://github.com/langchain-ai/langchain'} />
     <div className="action-row">
-      <button className="btn primary" onClick={analyze}><Search size={16}/> Analyze links</button>
-      {items.length > 0 && <button className="btn subtle" disabled={busy} onClick={enrich}>{busy ? <LoaderCircle className="spin" size={16}/> : <Sparkles size={16}/>} {busy ? 'Fetching...' : 'Fetch details (up to 10)'}</button>}
+      <button className="btn primary" disabled={busy} onClick={analyze}><Search size={16}/> Analyze links & details</button>
+      {items.length > 0 && <><button className="btn subtle" disabled={busy} onClick={() => enrich(false)}>{busy ? <LoaderCircle className="spin" size={16}/> : <Sparkles size={16}/>} {busy ? 'Analyzing...' : 'Analyze next 10'}</button><button className="btn subtle" disabled={busy} onClick={() => enrich(true)}>Analyze all remaining</button></>}
       {items.length > 0 && <button className="btn subtle" onClick={download}><Download size={16}/> Download backup</button>}
     </div>
-    <div className="helper-line"><Info size={15}/> GitHub limits unauthenticated API requests. Large imports work without metadata; use Fetch details in batches when needed.</div>
-    {status && <div className="notice" role="status">{status}</div>}
+    <div className="helper-line"><Info size={15}/> Suggestions use GitHub descriptions, topics and languages, not generative AI. Your authenticated Worker handles batches; review categories, hashtags and one-liners before publishing.</div>
+    {status && <div className="notice" role="status">{status} {busy && progress}</div>}
     {items.length > 0 && <>
-      <div className="import-review-head"><div><h3>{eligible.length} new resources to add</h3><p>{items.length} analyzed · {errors} metadata errors · duplicates omitted</p></div><button className="btn primary" disabled={busy || applied || !eligible.length} onClick={apply}>{applied ? <Check size={16}/> : <Plus size={16}/>} {applied ? 'Added to manager' : `Add ${eligible.length} to manager`} {!applied && <ArrowRight size={15}/>}</button></div>
+      <div className="import-review-head"><div><h3>{eligible.length} new resources to add</h3><p>{analyzed.length} enriched of {items.length} staged · {errors} metadata errors · duplicates omitted</p></div><button className="btn primary" disabled={busy || applied || !eligible.length} onClick={apply}>{applied ? <Check size={16}/> : <Plus size={16}/>} {applied ? 'Added to manager' : `Add ${eligible.length} to manager`} {!applied && <ArrowRight size={15}/>}</button></div>
       <label className="search-box compact"><Search size={17}/><input placeholder="Search imported links" value={query} onChange={e => setQuery(e.target.value)}/></label>
       <div className="import-review-list">
         {preview.slice(0, limit).map(r => <div className="import-review-item" key={r.url}>
           <div className="import-review-name"><Github size={18}/><div><strong>{r.name}</strong><a href={r.url} target="_blank" rel="noopener noreferrer">{r.url} <ExternalLink size={12}/></a></div></div>
-          <div className="import-review-edit"><label>Category<input value={r.category} onChange={e => update(r.url, { category: e.target.value })}/></label><label>Description<input value={r.description} onChange={e => update(r.url, { description: e.target.value })}/></label></div>
+          <div className="import-review-edit"><label>Category<input value={r.category} onChange={e => update(r.url, { category: e.target.value })}/></label><label>One-line summary<input maxLength={180} value={r.oneLiner ?? r.description} onChange={e => update(r.url, { oneLiner: e.target.value })}/></label><label>Hashtags<input value={(r.hashtags || []).join(' ')} onChange={e => update(r.url, { hashtags: e.target.value.split(/[\s,]+/).map(cleanHashtag).filter(Boolean) })}/></label><details className="import-original"><summary>GitHub details</summary><p>{r.description}</p>{r.language && <small>Language: {r.language}</small>}{typeof r.stars === 'number' && <small> · Stars: {r.stars.toLocaleString()}</small>}{typeof r.forks === 'number' && <small> · Forks: {r.forks.toLocaleString()}</small>}{r.license && <small> · License: {r.license}</small>}{r.updatedAt && <small> · Last updated: {new Date(r.updatedAt).toLocaleDateString()}</small>}{r.homepage && <p>Homepage: <a href={r.homepage} target="_blank" rel="noopener noreferrer">{r.homepage}</a></p>}</details></div>
         </div>)}
       </div>
       {preview.length > limit && <button className="btn subtle show-more" onClick={() => setLimit(x => x + 30)}>Show more imported links ({preview.length - limit} remaining)</button>}

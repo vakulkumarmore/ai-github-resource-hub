@@ -405,3 +405,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .grid-view .resource-quick { grid-column:auto; grid-row:auto; }
   .category-tag { font-size:9px; }
 }
+/* v14: metadata-driven, editable one-line summaries and hashtags */
+.import-review-edit { display: grid; grid-template-columns: minmax(120px, 0.75fr) minmax(220px, 2fr); gap: 10px; align-items: end; }
+.import-review-edit label { min-width: 0; }
+.import-review-edit input { min-width: 0; width: 100%; }
+.import-original { grid-column: 1 / -1; font-size: 12px; color: var(--text-muted, #67718b); }
+.import-original summary { cursor: pointer; font-weight: 600; }
+.import-original p { margin: 6px 0; line-height: 1.5; }
+.analysis-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+.resource-tags button { overflow-wrap: anywhere; }
+@media (max-width: 640px) { .import-review-edit { grid-template-columns: 1fr; } }
+.homepage-link { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; font-size: 12px; font-weight: 650; color: var(--primary, #634cde); padding: 6px 8px; border-radius: 8px; }
+.homepage-link:hover { text-decoration: underline; }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, Plus, RefreshCcw, Save, Search, ShieldCheck, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
-import Importer, { resourceKey, type Resource } from './Importer';
+import Importer, { fetchMetadata, resourceKey, type Resource } from './Importer';
+import { cleanHashtag, githubDetailsToResource } from './resourceAnalysis';
 
 type AdminTab = 'resources' | 'import' | 'publish';
 type Props = { publishedCatalog: Resource[]; onSaved: (resources: Resource[]) => void; onBack: () => void };
@@ -23,6 +24,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<Resource[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [analyzingKey, setAnalyzingKey] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [restorable, setRestorable] = useState<Resource[] | null>(null);
 
@@ -66,6 +68,28 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   };
   const update = (url: string, patch: Partial<Resource>) => {
     setDraft(prev => prev.map(r => resourceKey(r.url) === resourceKey(url) ? { ...r, ...patch } : r));
+  };
+  const analyzeExisting = async (resource: Resource) => {
+    if (!window.confirm(`Refresh GitHub details and replace the category, one-liner, tags and hashtags for ${resource.name}? You can edit the suggestions before publishing.`)) return;
+    const key = resourceKey(resource.url);
+    setAnalyzingKey(key);
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST', headers: {'content-type':'application/json'}, credentials:'same-origin',
+        body: JSON.stringify({urls:[resource.url]})
+      });
+      let suggestions: Partial<Resource>;
+      if (response.status === 404) suggestions = await fetchMetadata(resource);
+      else {
+        const result = await response.json();
+        if (!response.ok || result.results?.[0]?.error) throw new Error(result.error || result.results?.[0]?.error || 'Analysis failed');
+        suggestions = githubDetailsToResource(result.results[0], resource);
+      }
+      update(resource.url, suggestions);
+      setMessage(`Updated GitHub details and suggested hashtags for ${resource.name}. Review the changes before publishing.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Analysis failed');
+    } finally { setAnalyzingKey(null); }
   };
   const remove = (urls: string[]) => {
     if (!urls.length || !window.confirm(`Remove ${urls.length} resource(s) from your draft? You can undo before publishing.`)) return;
@@ -130,7 +154,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       <div className="manager-items">
         {visible.map(r => <div className="managed-resource" key={resourceKey(r.url)}>
           <div className="managed-resource-main"><input type="checkbox" aria-label={`Select ${r.name}`} checked={selected.includes(resourceKey(r.url))} onChange={e => setSelected(prev => e.target.checked ? [...prev, resourceKey(r.url)] : prev.filter(x => x !== resourceKey(r.url)))}/><div className="managed-resource-body"><div className="managed-title"><strong>{r.name}</strong><span className="category-tag">{r.category}</span></div><a href={r.url} target="_blank" rel="noopener noreferrer">{r.url} <ExternalLink size={13}/></a></div><div className="managed-buttons"><button className="btn subtle small" onClick={() => setEditing(editing === resourceKey(r.url) ? null : resourceKey(r.url))}><Edit3 size={15}/> {editing === resourceKey(r.url) ? 'Close' : 'Edit'}</button><button className="icon-btn delete-btn" aria-label={`Delete ${r.name}`} onClick={() => remove([r.url])}><Trash2 size={17}/></button></div></div>
-          {editing === resourceKey(r.url) && <div className="edit-fields"><label>Name<input value={r.name} onChange={e => update(r.url, { name: e.target.value })}/></label><label>Category<input value={r.category} onChange={e => update(r.url, { category: e.target.value })}/></label><label className="wide">Description<textarea rows={2} value={r.description} onChange={e => update(r.url, { description: e.target.value })}/></label><label>Tags (comma separated)<input value={(r.tags || []).join(', ')} onChange={e => update(r.url, { tags: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })}/></label><label>Language<input value={r.language || ''} onChange={e => update(r.url, { language: e.target.value })}/></label><label className="wide">Custom project image / logo URL (optional, HTTPS)<input type="url" placeholder="https://example.com/project-logo.png" value={r.imageUrl || ''} onChange={e => update(r.url, { imageUrl: e.target.value || undefined })}/><small>Overrides the GitHub preview. Leave blank to use the repository social preview and owner avatar automatically.</small></label></div>}
+          {editing === resourceKey(r.url) && <div className="edit-fields"><label>Name<input value={r.name} onChange={e => update(r.url, { name: e.target.value })}/></label><label>Category<input value={r.category} onChange={e => update(r.url, { category: e.target.value })}/></label><label className="wide">One-line summary<input maxLength={180} value={r.oneLiner ?? r.description} onChange={e => update(r.url, { oneLiner: e.target.value })}/></label><label className="wide">GitHub description<textarea rows={2} value={r.description} onChange={e => update(r.url, { description: e.target.value })}/></label><label>Hashtags (comma separated)<input value={(r.hashtags || []).join(', ')} onChange={e => update(r.url, { hashtags: e.target.value.split(/[\s,]+/).map(cleanHashtag).filter(Boolean) })}/></label><label>Tags (comma separated)<input value={(r.tags || []).join(', ')} onChange={e => update(r.url, { tags: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })}/></label><label>Language<input value={r.language || ''} onChange={e => update(r.url, { language: e.target.value })}/></label><label>License<input value={r.license || ''} onChange={e => update(r.url, { license: e.target.value })}/></label><label>Project homepage (HTTPS)<input value={r.homepage || ''} onChange={e => update(r.url, { homepage: e.target.value })}/></label><label className="wide">Custom project image / logo URL (optional, HTTPS)<input type="url" placeholder="https://example.com/project-logo.png" value={r.imageUrl || ''} onChange={e => update(r.url, { imageUrl: e.target.value || undefined })}/><small>Overrides the GitHub preview. Leave blank to use the repository social preview and owner avatar automatically.</small></label><div className="analysis-actions"><button className="btn subtle small" disabled={analyzingKey === resourceKey(r.url)} onClick={() => analyzeExisting(r)}>{analyzingKey === resourceKey(r.url) ? <LoaderCircle className="spin" size={15}/> : <Search size={15}/>} {analyzingKey === resourceKey(r.url) ? 'Analyzing…' : 'Refresh GitHub details & suggestions'}</button></div></div>}
         </div>)}
         {!visible.length && <div className="no-results">No matching resources. Try changing the search.</div>}
       </div>

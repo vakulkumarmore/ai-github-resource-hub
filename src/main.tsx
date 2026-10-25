@@ -59,7 +59,7 @@ function App() {
       if (category !== 'All resources' && r.category !== category) return false;
       if (favoritesOnly && !(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))) return false;
       if (!q) return true;
-      return [r.name, r.url, r.description, r.category, r.language || '', ...(r.tags || [])].join(' ').toLowerCase().includes(q);
+      return [r.name, r.url, r.description, r.oneLiner || '', r.category, r.language || '', ...(r.tags || []), ...(r.hashtags || [])].join(' ').toLowerCase().includes(q);
     }).sort((a, b) => {
       if (sort === 'name') return a.name.localeCompare(b.name);
       if (sort === 'category') return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
@@ -156,9 +156,9 @@ function ResourceItem({ resource: r, favorite, onToggle, onTag }: ItemProps) {
           <span className="category-tag">{r.category || 'Uncategorized'}</span>
         </div>
         <div className="resource-path">{owner}{repo && <span> / {repo}</span>}</div>
-        <p className="resource-description">{r.description}</p>
+        <p className="resource-description" title={r.oneLiner ? r.description : undefined}>{r.oneLiner || r.description}</p>
         <div className="resource-bottom">
-          <div className="resource-tags">{(r.tags || []).slice(0, 3).map(tag => <button onClick={() => onTag(tag)} key={tag} title={`Search ${tag}`}>{tag}</button>)}</div>
+          <div className="resource-tags">{((r.hashtags && r.hashtags.length ? r.hashtags : r.tags) || []).slice(0, 4).map(tag => <button onClick={() => onTag(tag.replace(/^#/, ''))} key={tag} title={`Search ${tag}`}>{tag.startsWith('#') ? tag : `#${tag.replace(/[^a-zA-Z0-9_]/g, '')}`}</button>)}</div>
           <div className="resource-meta">
             {r.language && <span className="meta-lang"><span className="language-dot"/>{r.language}</span>}
             {typeof r.stars === 'number' && <span title="GitHub stars"><Star size={14}/>{number(r.stars)}</span>}
@@ -168,7 +168,7 @@ function ResourceItem({ resource: r, favorite, onToggle, onTag }: ItemProps) {
       </div>
       <div className="resource-quick">
         <button className={`favorite-toggle ${favorite ? 'is-favorite' : ''}`} onClick={onToggle} aria-label={favorite ? `Remove ${r.name} from favorites` : `Add ${r.name} to favorites`} title="Save to favorites"><Heart size={18} fill={favorite ? 'currentColor' : 'none'}/></button>
-        <a className="visit-button" href={r.url} target="_blank" rel="noopener noreferrer">View repo <ArrowRight size={16}/></a>
+        {r.homepage?.startsWith('https://') && <a className="homepage-link" href={r.homepage} target="_blank" rel="noopener noreferrer" title="Project website">Website <ArrowUpRight size={14}/></a>}<a className="visit-button" href={r.url} target="_blank" rel="noopener noreferrer">View repo <ArrowRight size={16}/></a>
       </div>
     </div>
   </article>;
