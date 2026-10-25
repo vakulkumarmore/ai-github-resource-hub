@@ -118,8 +118,12 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       if (response.status === 404) suggestions = await fetchMetadata(resource);
       else {
         const result = await apiJson<{error?:string;results?:any[]}>(response, '/api/analyze');
-        if (result.results?.[0]?.error) throw new Error(result.error || result.results?.[0]?.error || 'Analysis failed');
-        suggestions = githubDetailsToResource(result.results[0], resource);
+        if (!Array.isArray(result.results) || result.results.length === 0) {
+          throw new Error(result.error || 'GitHub analysis returned no results. Please try again.');
+        }
+        const firstResult = result.results[0];
+        if (firstResult?.error) throw new Error(firstResult.error || result.error || 'Analysis failed');
+        suggestions = githubDetailsToResource(firstResult, resource);
       }
       update(resource.url, suggestions);
       setMessage(`Updated GitHub details and suggested hashtags for ${resource.name}. Review the changes before publishing.`);
