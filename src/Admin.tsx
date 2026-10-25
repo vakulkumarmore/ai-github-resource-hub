@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, Plus, RefreshCcw, Save, Search, ShieldCheck, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
 import Importer, { fetchMetadata, resourceKey, type Resource } from './Importer';
+import BulkAnalyzer from './BulkAnalyzer';
 import { cleanHashtag, githubDetailsToResource } from './resourceAnalysis';
 
-type AdminTab = 'resources' | 'import' | 'publish';
+type AdminTab = 'resources' | 'import' | 'analyze' | 'publish';
 type Props = { publishedCatalog: Resource[]; onSaved: (resources: Resource[]) => void; onBack: () => void };
 const pageSize = 30;
 
@@ -65,6 +66,11 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     setDraft(prev => [...prev, ...unique]);
     setPage(1); setQuery(''); setTab('resources');
     setMessage(`${unique.length} new resources added to your draft. Save Changes is now available.`);
+  };
+  const applyBulkEnrichment = (next: Resource[], changeCount: number) => {
+    setDraft(next);
+    setMessage(`${changeCount} resources enriched in your private draft. Review the edits, download a backup, then select Save Changes to GitHub when ready.`);
+    setTab('resources'); setPage(1); setQuery('');
   };
   const update = (url: string, patch: Partial<Resource>) => {
     setDraft(prev => prev.map(r => resourceKey(r.url) === resourceKey(url) ? { ...r, ...patch } : r));
@@ -141,14 +147,18 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     <nav className="workspace-tabs" aria-label="Admin workspace sections">
       <button className={tab === 'resources' ? 'active' : ''} onClick={() => setTab('resources')}><FileUp size={17}/> Resource manager</button>
       <button className={tab === 'import' ? 'active' : ''} onClick={() => setTab('import')}><UploadCloud size={17}/> Bulk importer</button>
+      <button className={tab === 'analyze' ? 'active' : ''} onClick={() => setTab('analyze')}><Search size={17}/> Analyze all</button>
       <button className={tab === 'publish' ? 'active' : ''} onClick={() => setTab('publish')}><Save size={17}/> Publishing {dirty && <span className="notification-dot"/>}</button>
     </nav>
     {message && <div className="notice" role="status"><InfoIcon/>{message}<button className="icon-btn" aria-label="Dismiss message" onClick={() => setMessage('')}><X size={15}/></button></div>}
 
     {tab === 'import' && <Importer catalog={draft} onApply={applyImported} onNavigate={() => setTab('resources')}/>}
 
+    {/* Keep the analyzer mounted when navigating to Resources so batch progress and review aren't lost. */}
+    <div hidden={tab !== 'analyze'}><BulkAnalyzer catalog={draft} onApply={applyBulkEnrichment}/></div>
+
     {tab === 'resources' && <div className="workspace-panel manager-panel">
-      <div className="panel-top"><div><h2>Your catalog</h2><p>Search, edit or remove resources. New imports appear here immediately.</p></div><button className="btn primary" onClick={() => setTab('import')}><Plus size={17}/> Add resources</button></div>
+      <div className="panel-top"><div><h2>Your catalog</h2><p>Search, edit or remove resources. New imports appear here immediately.</p></div><div className="action-row"><button className="btn subtle" onClick={() => setTab('analyze')}><Search size={17}/> Analyze all existing</button><button className="btn primary" onClick={() => setTab('import')}><Plus size={17}/> Add resources</button></div></div>
       <div className="manager-controls"><label className="search-box compact"><Search size={18}/><input placeholder="Search titles, categories or URLs" value={query} onChange={e => { setQuery(e.target.value); setPage(1); }}/></label><button className="btn subtle" disabled={!snapshot} onClick={undo}><Undo2 size={16}/> Undo delete</button><button className="btn subtle" disabled={!dirty} onClick={discard}><RefreshCcw size={16}/> Discard</button></div>
       <div className="selection-bar"><label><input type="checkbox" checked={visibleKeys.length > 0 && visibleKeys.every(k => selected.includes(k))} onChange={e => setSelected(prev => e.target.checked ? Array.from(new Set([...prev, ...visibleKeys])) : prev.filter(k => !visibleKeys.includes(k)))}/> Select page ({visible.length})</label><span>{filtered.length} matching · {selected.length} selected</span><button className="btn danger small" disabled={!selected.length} onClick={() => remove(selected)}><Trash2 size={15}/> Delete selected ({selected.length})</button></div>
       <div className="manager-items">
