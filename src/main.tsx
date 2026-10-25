@@ -1,18 +1,21 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowDownAZ, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, FilterX, Github, Grid2X2, Heart, LayoutList, LoaderCircle, Menu, Moon, Search, Shield, SlidersHorizontal, Sparkles, Star, Sun, X, ArrowUpRight } from 'lucide-react';
+import { ArrowDownAZ, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, FilterX, Github, Grid2X2, Heart, LayoutList, LoaderCircle, Menu, Moon, Search, Shield, SlidersHorizontal, Sparkles, Star, Sun, X, ArrowUpRight, Clock3, Compass, TrendingUp, Lightbulb, RefreshCw, CalendarDays } from 'lucide-react';
 import resources from './resources.json';
 import { fetchMetadata, resourceKey, type Resource } from './Importer';
 import Admin from './Admin';
 import RepoVisual from './RepoVisual';
 import { countHashtags, hashtagKey, resourceHashtags } from './hashtagUtils';
 import { apiJson } from './apiJson';
+import { daysSinceUpdated, isUpdatedWithinDays, readableUpdatedAt, safeUpdatedTime } from './discoveryUtils';
 import './style.css';
+import './largeCatalog.css';
 
-type Sort = 'featured' | 'name' | 'category' | 'stars';
+type Sort = 'featured' | 'name' | 'category' | 'stars' | 'recent';
+type Freshness = 'all' | '30' | '90' | '365' | 'unknown';
 type View = 'list' | 'grid';
 const initialCatalog = resources as Resource[];
-const pageSize = 24;
+const DEFAULT_PAGE_SIZE = 24;
 const number = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}k` : String(n);
 const names = (url: string) => { const parts = new URL(url).pathname.split('/').filter(Boolean); return { owner: parts[0] || 'GitHub', repo: parts[1] || '' }; };
 const readJson = <T,>(key: string, fallback: T): T => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) as T : fallback; } catch { return fallback; } };
@@ -23,6 +26,12 @@ function App() {
   const [screen, setScreen] = useState<'library' | 'about' | 'admin'>('library');
   const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
+  const [freshness, setFreshness] = useState<Freshness>('all');
+  const [language, setLanguage] = useState('All languages');
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showGuide, setShowGuide] = useState<boolean>(() => !readJson('ai-hub-guide-dismissed-v21', false));
+  const [pageSize, setPageSize] = useState<number>(() => { const stored = readJson<number>('ai-hub-page-size', DEFAULT_PAGE_SIZE); return [24,48,96].includes(stored) ? stored : DEFAULT_PAGE_SIZE; });
   const [category, setCategory] = useState('All resources');
   const [activeHashtag, setActiveHashtag] = useState('');
   const [showAllHashtags, setShowAllHashtags] = useState(false);
@@ -52,33 +61,56 @@ function App() {
   }, []);
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('ai-hub-dark-mode', JSON.stringify(dark)); }, [dark]);
   useEffect(() => { localStorage.setItem('ai-hub-view', JSON.stringify(view)); }, [view]);
+  useEffect(() => { localStorage.setItem('ai-hub-page-size', JSON.stringify(pageSize)); }, [pageSize]);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
     published.forEach(r => counts.set(r.category || 'Uncategorized', (counts.get(r.category || 'Uncategorized') || 0) + 1));
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [published]);
   const hashtagCounts = useMemo(() => countHashtags(published), [published]);
+  const languages = useMemo(() => {
+    const counts = new Map<string, number>();
+    published.forEach(r => { if (r.language?.trim()) counts.set(r.language, (counts.get(r.language) || 0) + 1); });
+    return [...counts.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [published]);
   const catalog = useMemo(() => published.map(r => { const meta = stats[resourceKey(r.url)]; return meta ? { ...r, stars: meta.stars ?? r.stars, forks: meta.forks ?? r.forks, updatedAt: meta.updatedAt ?? r.updatedAt } : r; }), [published, stats]);
+  // Search over an indexed string per repository rather than rebuilding 1,000+ strings on every keystroke.
+  const searchIndex = useMemo(() => {
+    const index = new Map<string, string>();
+    catalog.forEach(r => index.set(resourceKey(r.url), [r.name, r.url, r.description, r.oneLiner || '', r.category, r.language || '', ...(r.tags || []), ...resourceHashtags(r)].join(' ').toLowerCase()));
+    return index;
+  }, [catalog]);
+  const activityCounts = useMemo(() => ({
+    recent30: catalog.filter(r => r.type !== 'profile' && isUpdatedWithinDays(r.updatedAt, 30)).length,
+    withDates: catalog.filter(r => safeUpdatedTime(r.updatedAt) !== null).length,
+  }), [catalog]);
   const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
+    const q = deferredSearch.toLowerCase().trim();
     return catalog.filter(r => {
       if (category !== 'All resources' && r.category !== category) return false;
       if (favoritesOnly && !(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))) return false;
+      if (language !== 'All languages' && r.language !== language) return false;
       if (activeHashtag && !resourceHashtags(r).some(tag => hashtagKey(tag) === activeHashtag)) return false;
+      if (freshness === 'unknown' && safeUpdatedTime(r.updatedAt) !== null) return false;
+      if (freshness !== 'all' && freshness !== 'unknown' && (r.type === 'profile' || !isUpdatedWithinDays(r.updatedAt, Number(freshness)))) return false;
       if (!q) return true;
-      return [r.name, r.url, r.description, r.oneLiner || '', r.category, r.language || '', ...(r.tags || []), ...resourceHashtags(r)].join(' ').toLowerCase().includes(q);
+      return searchIndex.get(resourceKey(r.url))?.includes(q) || false;
     }).sort((a, b) => {
       if (sort === 'name') return a.name.localeCompare(b.name);
       if (sort === 'category') return a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
       if (sort === 'stars') return (b.stars ?? -1) - (a.stars ?? -1) || a.name.localeCompare(b.name);
+      if (sort === 'recent') return (safeUpdatedTime(b.updatedAt) ?? -1) - (safeUpdatedTime(a.updatedAt) ?? -1) || a.name.localeCompare(b.name);
       return 0;
     });
-  }, [catalog, category, activeHashtag, favoritesOnly, favorites, search, sort]);
+  }, [catalog, category, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, language, searchIndex]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const chooseCategory = (value: string) => { setCategory(value); setPage(1); setMobileFilters(false); };
   const chooseSearch = (value: string) => { setSearch(value); setPage(1); };
+  const browseRecentlyUpdated = () => { setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const startExploring = (term: string) => { chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const dismissGuide = () => { setShowGuide(false); localStorage.setItem('ai-hub-guide-dismissed-v21','true'); };
   const chooseHashtag = (tag: string) => {
     const key = hashtagKey(tag);
     setActiveHashtag(previous => previous === key ? '' : key);
@@ -93,8 +125,8 @@ function App() {
   const openAdmin = () => { setScreen('admin'); window.location.hash = 'admin'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const openLibrary = () => { setScreen('library'); window.history.replaceState(null, '', window.location.pathname); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const loadStats = async () => {
-    const candidates = visible.filter(r => r.type !== 'profile' && r.stars == null).slice(0, 10);
-    if (!candidates.length) { setStatsNote('GitHub statistics are already loaded for these visible repositories.'); return; }
+    const candidates = visible.filter(r => r.type !== 'profile' && (r.stars == null || r.updatedAt == null)).slice(0, 10);
+    if (!candidates.length) { setStatsNote('Dates and stars are already available for this page. Use Admin → Analyze All to refresh the saved catalog.'); return; }
     setStatsBusy(true); setStatsNote(`Loading GitHub details for ${candidates.length} visible repositories...`);
     let success = 0;
     const updates: Record<string, Partial<Resource>> = {};
@@ -105,7 +137,7 @@ function App() {
     setStatsNote(success < candidates.length ? `${success} updated. GitHub may be rate-limiting requests; try again later.` : `${success} repositories updated.`);
     setStatsBusy(false);
   };
-  const clearFilters = () => { chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); };
+  const clearFilters = () => { chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setSort('featured'); setPage(1); };
   const activeHashtagLabel = hashtagCounts.find(item => hashtagKey(item.tag) === activeHashtag)?.tag || activeHashtag;
   return <div className="site-shell">
     <header className="site-header"><div className="header-inner">
@@ -117,6 +149,11 @@ function App() {
 
     {screen === 'library' ? <main className="public-main">
       <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> THE OPEN SOURCE AI DIRECTORY</div><h1>Discover brilliant tools. <span>Build what’s next.</span></h1><p>Explore handpicked AI projects, developer tools, Claude resources and automation. Real repositories, useful context, and everything organized in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Visual repo previews</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div><div className="creator-credit"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More</strong></span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
+      {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
+        <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
+        <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
+        <div className="guide-examples"><span>Try exploring</span><button onClick={() => startExploring('Claude')}>Claude tools</button><button onClick={() => startExploring('MCP')}>MCP servers</button><button onClick={() => startExploring('Automation')}>Automation</button><button onClick={browseRecentlyUpdated}>Recently updated <ArrowRight size={14}/></button></div>
+      </section>}
       <section className="browse-section" id="browse"><div className="browse-header"><div><span className="section-eyebrow">DISCOVER & EXPLORE</span><h2>Resource library</h2><p>Browse visual repository previews, find the right tools, and bookmark your favorites.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} available resources`}</div></div>
       {hashtagCounts.length > 0 && <section className="hashtag-discovery" aria-label="Browse popular hashtags">
         <div className="hashtag-discovery-heading">
@@ -124,21 +161,30 @@ function App() {
           {activeHashtag && <button className="hashtag-clear" onClick={() => { setActiveHashtag(''); setPage(1); }}><X size={14}/> Clear hashtag</button>}
         </div>
         <div className="hashtag-cloud">
-          {(showAllHashtags ? hashtagCounts : hashtagCounts.slice(0, 12)).map(({ tag, count }) =>
+          {hashtagCounts.slice(0, showAllHashtags ? 48 : 12).map(({ tag, count }) =>
             <button key={hashtagKey(tag)} type="button" className={`hashtag-pill ${activeHashtag === hashtagKey(tag) ? 'selected' : ''}`} aria-pressed={activeHashtag === hashtagKey(tag)} onClick={() => chooseHashtag(tag)}>
               <span>{tag}</span><span className="hashtag-count">{count}</span>
             </button>)}
-          {hashtagCounts.length > 12 && <button className="hashtag-toggle" type="button" onClick={() => setShowAllHashtags(value => !value)} aria-expanded={showAllHashtags}>{showAllHashtags ? 'Show fewer' : `Show all ${hashtagCounts.length}` } <ChevronDown size={15} className={showAllHashtags ? 'hashtag-chevron-up' : ''}/></button>}
+          {hashtagCounts.length > 12 && <button className="hashtag-toggle" type="button" onClick={() => setShowAllHashtags(value => !value)} aria-expanded={showAllHashtags}>{showAllHashtags ? 'Show fewer' : `Show top ${Math.min(48, hashtagCounts.length)} of ${hashtagCounts.length}` } <ChevronDown size={15} className={showAllHashtags ? 'hashtag-chevron-up' : ''}/></button>}
         </div>
       </section>}
       <div className="explore-layout">
-        <aside className={`category-sidebar ${mobileFilters ? 'open' : ''}`}><div className="sidebar-heading"><span>Categories</span><button className="mobile-close" onClick={() => setMobileFilters(false)} aria-label="Close filters"><X size={19}/></button></div><div className="category-list"><button className={category === 'All resources' && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory('All resources'); setFavoritesOnly(false); }}><BookOpen size={17}/><span>All resources</span><em>{published.length}</em></button><button className={favoritesOnly ? 'selected' : ''} onClick={() => { setFavoritesOnly(true); setCategory('All resources'); setPage(1); setMobileFilters(false); }}><Heart size={17}/><span>My favorites</span><em>{favorites.length}</em></button></div><div className="sidebar-divider"/><div className="category-list">{categories.map(([name, count]) => <button key={name} className={category === name && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory(name); setFavoritesOnly(false); }}><span className="category-bullet"/><span title={name}>{name}</span><em>{count}</em></button>)}</div><div className="sidebar-note"><Sparkles size={17}/><strong>Made for discovery</strong><p>Save favorites and revisit them anytime on this device.</p></div></aside>
-        <div className="browse-main"><div className="search-toolbar"><label className="search-box"><Search size={20}/><input placeholder="Search over 200+ future resources by name, topic or technology..." value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label><button className="btn subtle mobile-filter-button" onClick={() => setMobileFilters(true)}><SlidersHorizontal size={17}/> Filters</button><div className="sort-wrap"><ArrowDownAZ size={17}/><select aria-label="Sort resources" value={sort} onChange={e => { setSort(e.target.value as Sort); setPage(1); }}><option value="featured">Recommended order</option><option value="name">Name A–Z</option><option value="category">Category</option><option value="stars">Most stars</option></select><ChevronDown size={15}/></div></div>
-          <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}{activeHashtag && <span className="filter-chip">{activeHashtagLabel}<button onClick={() => { setActiveHashtag(''); setPage(1); }} aria-label="Clear hashtag filter"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Load GitHub stats</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
+        <aside className={`category-sidebar ${mobileFilters ? 'open' : ''}`}><div className="sidebar-heading"><span>Categories</span><button className="mobile-close" onClick={() => setMobileFilters(false)} aria-label="Close filters"><X size={19}/></button></div><div className="category-list"><button className={category === 'All resources' && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory('All resources'); setFavoritesOnly(false); }}><BookOpen size={17}/><span>All resources</span><em>{published.length}</em></button><button className={favoritesOnly ? 'selected' : ''} onClick={() => { setFavoritesOnly(true); setCategory('All resources'); setPage(1); setMobileFilters(false); }}><Heart size={17}/><span>My favorites</span><em>{favorites.length}</em></button></div><div className="sidebar-divider"/><div className="category-list">{(showAllCategories || categories.length <= 12 ? categories : categories.slice(0, 12)).map(([name, count]) => <button key={name} className={category === name && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory(name); setFavoritesOnly(false); }}><span className="category-bullet"/><span title={name}>{name}</span><em>{count}</em></button>)}{categories.length > 12 && <button className="sidebar-more" onClick={() => setShowAllCategories(v => !v)} aria-expanded={showAllCategories}>{showAllCategories ? 'Show fewer categories' : `Show all ${categories.length} categories`} <ChevronDown size={15}/></button>}</div><div className="sidebar-note"><Sparkles size={17}/><strong>Made for discovery</strong><p>Save favorites and revisit them anytime on this device.</p></div></aside>
+        <div className="browse-main">
+          <div className="discovery-shortcuts" role="group" aria-label="Quick discovery options"><span>Quick explore</span><button type="button" className={freshness === '30' ? 'active' : ''} onClick={browseRecentlyUpdated}><Clock3 size={14}/> Recently updated <em>{activityCounts.recent30}</em></button><button type="button" className={sort === 'stars' ? 'active' : ''} onClick={() => { setSort('stars'); setFreshness('all'); setPage(1); }}><TrendingUp size={14}/> Most starred</button><button type="button" onClick={() => startExploring('MCP')}><Compass size={14}/> MCP tools</button><button type="button" onClick={() => startExploring('agent')}><Sparkles size={14}/> AI agents</button></div>
+          <div className="search-toolbar"><label className="search-box"><Search size={20}/><input placeholder={`Search ${published.length.toLocaleString()} resources by name, topic, category or language…`} value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label><button className="btn subtle mobile-filter-button" onClick={() => setMobileFilters(true)}><SlidersHorizontal size={17}/> Categories</button></div>
+          <div className="advanced-filters" role="group" aria-label="Filter and sort repositories">
+            <label><span><Clock3 size={14}/> Last GitHub activity</span><select value={freshness} onChange={e => { setFreshness(e.target.value as Freshness); setPage(1); }}><option value="all">Any date</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option><option value="unknown">Date unavailable</option></select></label>
+            <label><span>Language</span><select value={language} onChange={e => { setLanguage(e.target.value); setPage(1); }}><option value="All languages">All languages</option>{languages.map(([lang, count]) => <option key={lang} value={lang}>{lang} ({count})</option>)}</select></label>
+            <label><span><ArrowDownAZ size={14}/> Sort by</span><select value={sort} onChange={e => { setSort(e.target.value as Sort); setPage(1); }}><option value="featured">Curated order</option><option value="recent">Last updated (newest)</option><option value="stars">Most GitHub stars</option><option value="name">Name A–Z</option><option value="category">Category</option></select></label>
+            <button type="button" className="filter-clear-action" onClick={clearFilters}><FilterX size={15}/> Clear filters</button>
+          </div>
+          <div className="activity-context" role="status"><CalendarDays size={15}/><span>Last updated reflects GitHub activity when metadata was last analyzed, not when this hub added the link. Dates are available for <strong>{activityCounts.withDates.toLocaleString()}</strong> of {catalog.length.toLocaleString()} resources.</span></div>
+          <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}{freshness !== 'all' && <span className="filter-chip">{freshness === 'unknown' ? 'Date unavailable' : `Updated in ${freshness} days`}<button onClick={() => setFreshness('all')} aria-label="Clear activity filter"><X size={12}/></button></span>}{language !== 'All languages' && <span className="filter-chip">{language}<button onClick={() => setLanguage('All languages')} aria-label="Clear language filter"><X size={12}/></button></span>}{activeHashtag && <span className="filter-chip">{activeHashtagLabel}<button onClick={() => { setActiveHashtag(''); setPage(1); }} aria-label="Clear hashtag filter"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Fill missing GitHub details</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
           {statsNote && <div className="stats-note" role="status">{statsNote} <button onClick={() => setStatsNote('')} aria-label="Dismiss message"><X size={14}/></button></div>}
           <div className={`resource-results ${view === 'grid' ? 'grid-view' : 'list-view'}`}>{visible.map(r => <ResourceItem key={resourceKey(r.url)} resource={r} favorite={(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))} onToggle={() => toggleFavorite(r.url)} onTag={chooseHashtag}/>)}</div>
-          {!filtered.length && <div className="empty-state"><FilterX size={33}/><h3>No resources found</h3><p>Try a different keyword or remove your filters.</p><button className="btn primary" onClick={clearFilters}>Clear all filters</button></div>}
-          {!!filtered.length && <div className="pagination"><span>Showing <strong>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of {filtered.length.toLocaleString()}</span><div><button className="btn subtle small" disabled={currentPage === 1} onClick={() => { setPage(p => p - 1); document.getElementById('browse')?.scrollIntoView(); }}><ArrowLeft size={15}/> Previous</button><span className="page-number">{currentPage} / {totalPages}</span><button className="btn subtle small" disabled={currentPage === totalPages} onClick={() => { setPage(p => p + 1); document.getElementById('browse')?.scrollIntoView(); }}>Next <ArrowRight size={15}/></button></div></div>}
+          {!filtered.length && <div className="empty-state"><FilterX size={33}/><h3>No resources found</h3><p>Try different keywords, clear your filters, or choose another category. If you filtered for recent updates, some repositories may not have an activity date yet.</p><button className="btn primary" onClick={clearFilters}>Clear all filters</button></div>}
+          {!!filtered.length && <div className="pagination"><span>Showing <strong>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of {filtered.length.toLocaleString()}</span><div className="page-controls"><label className="page-size-control">Per page <select aria-label="Resources per page" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}><option value={24}>24</option><option value={48}>48</option><option value={96}>96</option></select></label><button className="btn subtle small" disabled={currentPage === 1} onClick={() => { setPage(p => p - 1); document.getElementById('browse')?.scrollIntoView(); }}><ArrowLeft size={15}/> Previous</button><span className="page-number">{currentPage} / {totalPages}</span><button className="btn subtle small" disabled={currentPage === totalPages} onClick={() => { setPage(p => p + 1); document.getElementById('browse')?.scrollIntoView(); }}>Next <ArrowRight size={15}/></button></div></div>}
         </div>
       </div></section>
     </main> : screen === 'about' ? <main className="about-page" id="about">
@@ -190,7 +236,7 @@ function ResourceItem({ resource: r, favorite, onToggle, onTag }: ItemProps) {
           <div className="resource-meta">
             {r.language && <span className="meta-lang"><span className="language-dot"/>{r.language}</span>}
             {typeof r.stars === 'number' && <span title="GitHub stars"><Star size={14}/>{number(r.stars)}</span>}
-            {r.updatedAt && !Number.isNaN(new Date(r.updatedAt).valueOf()) && <span className="resource-updated" title={r.updatedAt}>Updated {new Date(r.updatedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
+            {r.type !== 'profile' && <span className={`resource-updated ${daysSinceUpdated(r.updatedAt) !== null && daysSinceUpdated(r.updatedAt)! <= 90 ? 'is-recent' : ''}`} title={safeUpdatedTime(r.updatedAt) !== null ? `Last GitHub activity recorded: ${new Date(safeUpdatedTime(r.updatedAt)!).toLocaleString('en-US', {dateStyle:'medium', timeStyle:'short'})}` : 'GitHub activity date is not available in this catalog'}><Clock3 size={13}/>{safeUpdatedTime(r.updatedAt) !== null ? `Updated ${readableUpdatedAt(r.updatedAt)}` : 'Update date unavailable'}</span>}
           </div>
         </div>
       </div>
