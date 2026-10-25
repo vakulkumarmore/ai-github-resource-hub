@@ -5,6 +5,9 @@ import resources from './resources.json';
 import { fetchMetadata, resourceKey, type Resource } from './Importer';
 import Admin from './Admin';
 import RepoVisual from './RepoVisual';
+import NeedDiscovery from './NeedDiscovery';
+import CatalogAssistant from './CatalogAssistant';
+import { DISCOVERY_NEEDS, rankForNeed } from './discoveryNeeds';
 import { countHashtags, hashtagKey, resourceHashtags } from './hashtagUtils';
 import { apiJson } from './apiJson';
 import { daysSinceUpdated, isUpdatedWithinDays, readableUpdatedAt, safeUpdatedTime } from './discoveryUtils';
@@ -24,6 +27,8 @@ function App() {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogWarning, setCatalogWarning] = useState('');
   const [screen, setScreen] = useState<'library' | 'about' | 'admin'>('library');
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [filterNeed, setFilterNeed] = useState<string | null>(null);
   const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
@@ -84,10 +89,15 @@ function App() {
     recent30: catalog.filter(r => r.type !== 'profile' && isUpdatedWithinDays(r.updatedAt, 30)).length,
     withDates: catalog.filter(r => safeUpdatedTime(r.updatedAt) !== null).length,
   }), [catalog]);
+  const selectedNeedUrls = useMemo(() => {
+    const need = DISCOVERY_NEEDS.find(item => item.id === filterNeed);
+    return need ? new Set(rankForNeed(catalog, need).map(item => resourceKey(item.resource.url))) : null;
+  }, [catalog, filterNeed]);
   const filtered = useMemo(() => {
     const q = deferredSearch.toLowerCase().trim();
     return catalog.filter(r => {
       if (category !== 'All resources' && r.category !== category) return false;
+      if (selectedNeedUrls && !selectedNeedUrls.has(resourceKey(r.url))) return false;
       if (favoritesOnly && !(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))) return false;
       if (language !== 'All languages' && r.language !== language) return false;
       if (activeHashtag && !resourceHashtags(r).some(tag => hashtagKey(tag) === activeHashtag)) return false;
@@ -102,16 +112,17 @@ function App() {
       if (sort === 'recent') return (safeUpdatedTime(b.updatedAt) ?? -1) - (safeUpdatedTime(a.updatedAt) ?? -1) || a.name.localeCompare(b.name);
       return 0;
     });
-  }, [catalog, category, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, language, searchIndex]);
+  }, [catalog, category, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, language, searchIndex, selectedNeedUrls]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const chooseCategory = (value: string) => { setCategory(value); setPage(1); setMobileFilters(false); };
+  const chooseCategory = (value: string) => { setFilterNeed(null); setCategory(value); setPage(1); setMobileFilters(false); };
   const chooseSearch = (value: string) => { setSearch(value); setPage(1); };
-  const browseRecentlyUpdated = () => { setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
-  const startExploring = (term: string) => { chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const browseRecentlyUpdated = () => { setFilterNeed(null); setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const startExploring = (term: string) => { setFilterNeed(null); chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
   const dismissGuide = () => { setShowGuide(false); localStorage.setItem('ai-hub-guide-dismissed-v21','true'); };
   const chooseHashtag = (tag: string) => {
+    setFilterNeed(null);
     const key = hashtagKey(tag);
     setActiveHashtag(previous => previous === key ? '' : key);
     setPage(1);
@@ -121,8 +132,8 @@ function App() {
     const key = resourceKey(url);
     setFavorites(old => { const next = old.includes(key) ? old.filter(x => x !== key) : [...old, key]; localStorage.setItem('resource-hub-favorites', JSON.stringify(next)); return next; });
   };
-  const openAbout = () => { setScreen('about'); window.location.hash = 'about'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const openAdmin = () => { setScreen('admin'); window.location.hash = 'admin'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const openAbout = () => { setAssistantOpen(false); setScreen('about'); window.location.hash = 'about'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const openAdmin = () => { setAssistantOpen(false); setScreen('admin'); window.location.hash = 'admin'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const openLibrary = () => { setScreen('library'); window.history.replaceState(null, '', window.location.pathname); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const loadStats = async () => {
     const candidates = visible.filter(r => r.type !== 'profile' && (r.stars == null || r.updatedAt == null)).slice(0, 10);
@@ -137,7 +148,14 @@ function App() {
     setStatsNote(success < candidates.length ? `${success} updated. GitHub may be rate-limiting requests; try again later.` : `${success} repositories updated.`);
     setStatsBusy(false);
   };
-  const clearFilters = () => { chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setSort('featured'); setPage(1); };
+  const clearFilters = () => { setFilterNeed(null); chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setSort('featured'); setPage(1); };
+  const browseNeed = (needId: string) => {
+    setFilterNeed(needId); setCategory('All resources'); setSearch(''); setFreshness('all'); setLanguage('All languages'); setActiveHashtag(''); setFavoritesOnly(false); setSort('stars'); setPage(1);
+    window.location.hash = '';
+    setScreen('library');
+    window.setTimeout(() => document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}), 40);
+  };
+  const activeNeedLabel = DISCOVERY_NEEDS.find(need => need.id === filterNeed)?.title || '';
   const activeHashtagLabel = hashtagCounts.find(item => hashtagKey(item.tag) === activeHashtag)?.tag || activeHashtag;
   return <div className="site-shell">
     <header className="site-header"><div className="header-inner">
@@ -149,6 +167,7 @@ function App() {
 
     {screen === 'library' ? <main className="public-main">
       <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> THE OPEN SOURCE AI DIRECTORY</div><h1>Discover brilliant tools. <span>Build what’s next.</span></h1><p>Explore handpicked AI projects, developer tools, Claude resources and automation. Real repositories, useful context, and everything organized in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Visual repo previews</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div><div className="creator-credit"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More</strong></span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
+      <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} />
       {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
         <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
         <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
@@ -169,7 +188,7 @@ function App() {
         </div>
       </section>}
       <div className="explore-layout">
-        <aside className={`category-sidebar ${mobileFilters ? 'open' : ''}`}><div className="sidebar-heading"><span>Categories</span><button className="mobile-close" onClick={() => setMobileFilters(false)} aria-label="Close filters"><X size={19}/></button></div><div className="category-list"><button className={category === 'All resources' && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory('All resources'); setFavoritesOnly(false); }}><BookOpen size={17}/><span>All resources</span><em>{published.length}</em></button><button className={favoritesOnly ? 'selected' : ''} onClick={() => { setFavoritesOnly(true); setCategory('All resources'); setPage(1); setMobileFilters(false); }}><Heart size={17}/><span>My favorites</span><em>{favorites.length}</em></button></div><div className="sidebar-divider"/><div className="category-list">{(showAllCategories || categories.length <= 12 ? categories : categories.slice(0, 12)).map(([name, count]) => <button key={name} className={category === name && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory(name); setFavoritesOnly(false); }}><span className="category-bullet"/><span title={name}>{name}</span><em>{count}</em></button>)}{categories.length > 12 && <button className="sidebar-more" onClick={() => setShowAllCategories(v => !v)} aria-expanded={showAllCategories}>{showAllCategories ? 'Show fewer categories' : `Show all ${categories.length} categories`} <ChevronDown size={15}/></button>}</div><div className="sidebar-note"><Sparkles size={17}/><strong>Made for discovery</strong><p>Save favorites and revisit them anytime on this device.</p></div></aside>
+        <aside className={`category-sidebar ${mobileFilters ? 'open' : ''}`}><div className="sidebar-heading"><span>Categories</span><button className="mobile-close" onClick={() => setMobileFilters(false)} aria-label="Close filters"><X size={19}/></button></div><div className="category-list"><button className={category === 'All resources' && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory('All resources'); setFavoritesOnly(false); }}><BookOpen size={17}/><span>All resources</span><em>{published.length}</em></button><button className={favoritesOnly ? 'selected' : ''} onClick={() => { setFilterNeed(null); setFavoritesOnly(true); setCategory('All resources'); setPage(1); setMobileFilters(false); }}><Heart size={17}/><span>My favorites</span><em>{favorites.length}</em></button></div><div className="sidebar-divider"/><div className="category-list">{(showAllCategories || categories.length <= 12 ? categories : categories.slice(0, 12)).map(([name, count]) => <button key={name} className={category === name && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory(name); setFavoritesOnly(false); }}><span className="category-bullet"/><span title={name}>{name}</span><em>{count}</em></button>)}{categories.length > 12 && <button className="sidebar-more" onClick={() => setShowAllCategories(v => !v)} aria-expanded={showAllCategories}>{showAllCategories ? 'Show fewer categories' : `Show all ${categories.length} categories`} <ChevronDown size={15}/></button>}</div><div className="sidebar-note"><Sparkles size={17}/><strong>Made for discovery</strong><p>Save favorites and revisit them anytime on this device.</p></div></aside>
         <div className="browse-main">
           <div className="discovery-shortcuts" role="group" aria-label="Quick discovery options"><span>Quick explore</span><button type="button" className={freshness === '30' ? 'active' : ''} onClick={browseRecentlyUpdated}><Clock3 size={14}/> Recently updated <em>{activityCounts.recent30}</em></button><button type="button" className={sort === 'stars' ? 'active' : ''} onClick={() => { setSort('stars'); setFreshness('all'); setPage(1); }}><TrendingUp size={14}/> Most starred</button><button type="button" onClick={() => startExploring('MCP')}><Compass size={14}/> MCP tools</button><button type="button" onClick={() => startExploring('agent')}><Sparkles size={14}/> AI agents</button></div>
           <div className="search-toolbar"><label className="search-box"><Search size={20}/><input placeholder={`Search ${published.length.toLocaleString()} resources by name, topic, category or language…`} value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label><button className="btn subtle mobile-filter-button" onClick={() => setMobileFilters(true)}><SlidersHorizontal size={17}/> Categories</button></div>
@@ -180,7 +199,7 @@ function App() {
             <button type="button" className="filter-clear-action" onClick={clearFilters}><FilterX size={15}/> Clear filters</button>
           </div>
           <div className="activity-context" role="status"><CalendarDays size={15}/><span>Last updated reflects GitHub activity when metadata was last analyzed, not when this hub added the link. Dates are available for <strong>{activityCounts.withDates.toLocaleString()}</strong> of {catalog.length.toLocaleString()} resources.</span></div>
-          <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}{freshness !== 'all' && <span className="filter-chip">{freshness === 'unknown' ? 'Date unavailable' : `Updated in ${freshness} days`}<button onClick={() => setFreshness('all')} aria-label="Clear activity filter"><X size={12}/></button></span>}{language !== 'All languages' && <span className="filter-chip">{language}<button onClick={() => setLanguage('All languages')} aria-label="Clear language filter"><X size={12}/></button></span>}{activeHashtag && <span className="filter-chip">{activeHashtagLabel}<button onClick={() => { setActiveHashtag(''); setPage(1); }} aria-label="Clear hashtag filter"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Fill missing GitHub details</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
+          <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {filterNeed && <span className="filter-chip">{activeNeedLabel}<button onClick={() => {setFilterNeed(null);setPage(1);}} aria-label="Clear selected use case"><X size={12}/></button></span>}{category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}{freshness !== 'all' && <span className="filter-chip">{freshness === 'unknown' ? 'Date unavailable' : `Updated in ${freshness} days`}<button onClick={() => setFreshness('all')} aria-label="Clear activity filter"><X size={12}/></button></span>}{language !== 'All languages' && <span className="filter-chip">{language}<button onClick={() => setLanguage('All languages')} aria-label="Clear language filter"><X size={12}/></button></span>}{activeHashtag && <span className="filter-chip">{activeHashtagLabel}<button onClick={() => { setActiveHashtag(''); setPage(1); }} aria-label="Clear hashtag filter"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Fill missing GitHub details</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
           {statsNote && <div className="stats-note" role="status">{statsNote} <button onClick={() => setStatsNote('')} aria-label="Dismiss message"><X size={14}/></button></div>}
           <div className={`resource-results ${view === 'grid' ? 'grid-view' : 'list-view'}`}>{visible.map(r => <ResourceItem key={resourceKey(r.url)} resource={r} favorite={(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))} onToggle={() => toggleFavorite(r.url)} onTag={chooseHashtag}/>)}</div>
           {!filtered.length && <div className="empty-state"><FilterX size={33}/><h3>No resources found</h3><p>Try different keywords, clear your filters, or choose another category. If you filtered for recent updates, some repositories may not have an activity date yet.</p><button className="btn primary" onClick={clearFilters}>Clear all filters</button></div>}
@@ -214,6 +233,7 @@ function App() {
         </div>
       </div>
     </main> : catalogLoading ? <div className="workspace auth-message"><LoaderCircle className="spin"/> Loading published resources...</div> : <Admin publishedCatalog={published} onSaved={items => { setPublished(items); setCatalogLoading(false); }} onBack={openLibrary}/>}
+    {screen === 'library' && <CatalogAssistant resources={catalog} open={assistantOpen} onOpenChange={setAssistantOpen} onExplore={browseNeed} onSearch={startExploring} />}
     <footer className="site-footer"><div><span className="footer-logo"><Github size={18}/> AI GitHub Resource Hub</span><span>Created &amp; curated by <strong className="footer-author">Vakul Kumar More</strong></span><button className="footer-about-link" onClick={openAbout}>About the Creator <ArrowUpRight size={13}/></button></div><span>Independent resource directory · Powered by GitHub &amp; Cloudflare</span></footer>
   </div>;
 }
