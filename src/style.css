@@ -447,17 +447,4 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .hashtag-pill { padding: 8px 9px; font-size: 11px; }
 }
 
-/* Admin: review newly imported resources without scrolling through the full catalog. */
-.manager-views { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin: 0 0 13px; }
-.manager-views button { display:inline-flex; align-items:center; gap:8px; padding:9px 12px; background:var(--surface); color:var(--secondary); border:1px solid var(--border); border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
-.manager-views button:hover { border-color:var(--accent); color:var(--text); }
-.manager-views button.active { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
-.manager-views button span { display:inline-flex; align-items:center; justify-content:center; min-width:24px; padding:2px 6px; background:var(--surface-muted); border-radius:6px; color:var(--text); font-size:11px; }
-.manager-views button.active span { background:var(--surface); color:var(--accent); }
-.manager-view-info { display:flex; align-items:center; gap:9px; padding:12px 14px; margin-bottom:13px; border:1px solid var(--border); border-radius:10px; background:var(--surface-muted); color:var(--secondary); font-size:12px; line-height:1.5; }
-.manager-view-info > svg { flex-shrink:0; color:var(--accent); }
-.manager-view-info > span { flex:1; }
-.resource-status-badge { font-size:10px; font-weight:800; border-radius:5px; padding:4px 7px; white-space:nowrap; }
-.resource-status-badge.is-new { background:#dbf5e7; color:#12673a; }
-.resource-status-badge.is-edited { background:#fff0ce; color:#885400; }
-@media (max-width:610px) { .manager-views { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); } .manager-views button { justify-content:space-between; min-width:0; font-size:11px; } .manager-view-info { align-items:flex-start; flex-wrap:wrap; } }
+.compare-notice{position:fixed;bottom:105px;left:25px;z-index:85;max-width:340px;background:var(--surface);color:var(--text);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px;box-shadow:0 12px 30px #0003;font-size:12px;display:flex;gap:10px;align-items:center}.compare-notice button{border:0;background:transparent;color:var(--secondary)}

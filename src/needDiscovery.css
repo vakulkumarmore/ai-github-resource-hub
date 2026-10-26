@@ -43,3 +43,9 @@
 @media(max-width:1000px) {.need-card-grid {grid-template-columns:repeat(3,minmax(0,1fr))}.need-top-list {grid-template-columns:1fr}}
 @media(max-width:760px) {.need-discovery {padding:14px 20px 35px}.need-discovery-header {flex-direction:column;align-items:flex-start}.need-card-grid {grid-template-columns:repeat(2,minmax(0,1fr))}.need-top-head {flex-direction:column;align-items:flex-start}.need-ask-cta {width:100%}}
 @media(max-width:480px) {.need-discovery {padding:10px 14px 27px}.need-card-grid {gap:9px}.need-card {padding:13px;min-height:177px}.need-card-title {font-size:12px}.need-card-desc {font-size:10px}.need-card-foot {font-size:9px}.need-top-item {padding:12px 3px}.need-top-avatar {width:37px;height:37px;flex-basis:37px}.need-top-avatar .repo-visual {width:37px;height:37px}}
+
+/* Comparison control beside the Top 10 results, keeping the repo link separate */
+.need-top-item{display:flex;align-items:center;gap:10px}
+.need-top-item-link{display:flex;align-items:center;flex:1;min-width:0;gap:12px;text-decoration:none;color:inherit}
+.need-top-item>.compare-inline-button{flex-shrink:0;margin-right:12px}
+@media(max-width:620px){.need-top-item{flex-wrap:wrap}.need-top-item-link{min-width:100%;padding-bottom:0}.need-top-item>.compare-inline-button{margin-left:48px;margin-bottom:10px}}

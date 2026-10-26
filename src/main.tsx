@@ -7,6 +7,8 @@ import Admin from './Admin';
 import RepoVisual from './RepoVisual';
 import NeedDiscovery from './NeedDiscovery';
 import CatalogAssistant from './CatalogAssistant';
+import CompareTray from './CompareTray';
+import { GitCompareArrows } from 'lucide-react';
 import { DISCOVERY_NEEDS, rankForNeed } from './discoveryNeeds';
 import { countHashtags, hashtagKey, resourceHashtags } from './hashtagUtils';
 import { apiJson } from './apiJson';
@@ -28,6 +30,8 @@ function App() {
   const [catalogWarning, setCatalogWarning] = useState('');
   const [screen, setScreen] = useState<'library' | 'about' | 'admin'>('library');
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [comparedUrls, setComparedUrls] = useState<string[]>([]);
+  const [compareNotice, setCompareNotice] = useState('');
   const [filterNeed, setFilterNeed] = useState<string | null>(null);
   const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
   const [search, setSearch] = useState('');
@@ -128,6 +132,17 @@ function App() {
     setPage(1);
     document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' });
   };
+  const comparedResources = useMemo(() => comparedUrls.map(url => catalog.find(r => resourceKey(r.url) === url)).filter((r): r is Resource => !!r), [catalog, comparedUrls]);
+  const isCompared = (url: string) => comparedUrls.includes(resourceKey(url));
+  const toggleCompare = (url: string) => {
+    const key = resourceKey(url);
+    setComparedUrls(previous => {
+      if (previous.includes(key)) { setCompareNotice(''); return previous.filter(item => item !== key); }
+      if (previous.length >= 3) { setCompareNotice('You can compare up to 3 repositories. Remove one to add another.'); return previous; }
+      setCompareNotice('');
+      return [...previous, key];
+    });
+  };
   const toggleFavorite = (url: string) => {
     const key = resourceKey(url);
     setFavorites(old => { const next = old.includes(key) ? old.filter(x => x !== key) : [...old, key]; localStorage.setItem('resource-hub-favorites', JSON.stringify(next)); return next; });
@@ -167,7 +182,7 @@ function App() {
 
     {screen === 'library' ? <main className="public-main">
       <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> THE OPEN SOURCE AI DIRECTORY</div><h1>Discover brilliant tools. <span>Build what’s next.</span></h1><p>Explore handpicked AI projects, developer tools, Claude resources and automation. Real repositories, useful context, and everything organized in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Visual repo previews</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div><div className="creator-credit"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More</strong></span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
-      <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} />
+      <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} onCompare={toggleCompare} isCompared={isCompared} comparisonCount={comparedUrls.length} />
       {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
         <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
         <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
@@ -201,7 +216,7 @@ function App() {
           <div className="activity-context" role="status"><CalendarDays size={15}/><span>Last updated reflects GitHub activity when metadata was last analyzed, not when this hub added the link. Dates are available for <strong>{activityCounts.withDates.toLocaleString()}</strong> of {catalog.length.toLocaleString()} resources.</span></div>
           <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {filterNeed && <span className="filter-chip">{activeNeedLabel}<button onClick={() => {setFilterNeed(null);setPage(1);}} aria-label="Clear selected use case"><X size={12}/></button></span>}{category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}{freshness !== 'all' && <span className="filter-chip">{freshness === 'unknown' ? 'Date unavailable' : `Updated in ${freshness} days`}<button onClick={() => setFreshness('all')} aria-label="Clear activity filter"><X size={12}/></button></span>}{language !== 'All languages' && <span className="filter-chip">{language}<button onClick={() => setLanguage('All languages')} aria-label="Clear language filter"><X size={12}/></button></span>}{activeHashtag && <span className="filter-chip">{activeHashtagLabel}<button onClick={() => { setActiveHashtag(''); setPage(1); }} aria-label="Clear hashtag filter"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Fill missing GitHub details</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
           {statsNote && <div className="stats-note" role="status">{statsNote} <button onClick={() => setStatsNote('')} aria-label="Dismiss message"><X size={14}/></button></div>}
-          <div className={`resource-results ${view === 'grid' ? 'grid-view' : 'list-view'}`}>{visible.map(r => <ResourceItem key={resourceKey(r.url)} resource={r} favorite={(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))} onToggle={() => toggleFavorite(r.url)} onTag={chooseHashtag}/>)}</div>
+          <div className={`resource-results ${view === 'grid' ? 'grid-view' : 'list-view'}`}>{visible.map(r => <ResourceItem key={resourceKey(r.url)} resource={r} favorite={(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))} onToggle={() => toggleFavorite(r.url)} onTag={chooseHashtag} onCompare={() => toggleCompare(r.url)} compared={isCompared(r.url)} compareDisabled={comparedUrls.length >= 3 && !isCompared(r.url)}/>)}</div>
           {!filtered.length && <div className="empty-state"><FilterX size={33}/><h3>No resources found</h3><p>Try different keywords, clear your filters, or choose another category. If you filtered for recent updates, some repositories may not have an activity date yet.</p><button className="btn primary" onClick={clearFilters}>Clear all filters</button></div>}
           {!!filtered.length && <div className="pagination"><span>Showing <strong>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of {filtered.length.toLocaleString()}</span><div className="page-controls"><label className="page-size-control">Per page <select aria-label="Resources per page" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}><option value={24}>24</option><option value={48}>48</option><option value={96}>96</option></select></label><button className="btn subtle small" disabled={currentPage === 1} onClick={() => { setPage(p => p - 1); document.getElementById('browse')?.scrollIntoView(); }}><ArrowLeft size={15}/> Previous</button><span className="page-number">{currentPage} / {totalPages}</span><button className="btn subtle small" disabled={currentPage === totalPages} onClick={() => { setPage(p => p + 1); document.getElementById('browse')?.scrollIntoView(); }}>Next <ArrowRight size={15}/></button></div></div>}
         </div>
@@ -233,13 +248,15 @@ function App() {
         </div>
       </div>
     </main> : catalogLoading ? <div className="workspace auth-message"><LoaderCircle className="spin"/> Loading published resources...</div> : <Admin publishedCatalog={published} onSaved={items => { setPublished(items); setCatalogLoading(false); }} onBack={openLibrary}/>}
-    {screen === 'library' && <CatalogAssistant resources={catalog} open={assistantOpen} onOpenChange={setAssistantOpen} onExplore={browseNeed} onSearch={startExploring} />}
+    {screen === 'library' && <CatalogAssistant resources={catalog} open={assistantOpen} onOpenChange={setAssistantOpen} onExplore={browseNeed} onSearch={startExploring} onCompare={toggleCompare} isCompared={isCompared} comparisonCount={comparedUrls.length} />}
+    {screen === 'library' && <CompareTray selected={comparedResources} onRemove={toggleCompare} onClear={() => {setComparedUrls([]);setCompareNotice('');}} />}
+    {compareNotice && <div className="compare-notice" role="status">{compareNotice}<button type="button" onClick={() => setCompareNotice('')} aria-label="Dismiss comparison notice"><X size={14}/></button></div>}
     <footer className="site-footer"><div><span className="footer-logo"><Github size={18}/> AI GitHub Resource Hub</span><span>Created &amp; curated by <strong className="footer-author">Vakul Kumar More</strong></span><button className="footer-about-link" onClick={openAbout}>About the Creator <ArrowUpRight size={13}/></button></div><span>Independent resource directory · Powered by GitHub &amp; Cloudflare</span></footer>
   </div>;
 }
 
-type ItemProps = { resource: Resource; favorite: boolean; onToggle: () => void; onTag: (tag: string) => void };
-function ResourceItem({ resource: r, favorite, onToggle, onTag }: ItemProps) {
+type ItemProps = { resource: Resource; favorite: boolean; onToggle: () => void; onTag: (tag: string) => void; onCompare: () => void; compared: boolean; compareDisabled: boolean };
+function ResourceItem({ resource: r, favorite, onToggle, onTag, onCompare, compared, compareDisabled }: ItemProps) {
   const { owner, repo } = names(r.url);
   return <article className="resource-item">
     <div className="item-top">
@@ -261,6 +278,7 @@ function ResourceItem({ resource: r, favorite, onToggle, onTag }: ItemProps) {
         </div>
       </div>
       <div className="resource-quick">
+        <button type="button" className={`compare-inline-button ${compared ? 'is-selected' : ''}`} aria-pressed={compared} disabled={compareDisabled} title={compared ? 'Remove from comparison' : 'Add to side-by-side comparison'} onClick={onCompare}><GitCompareArrows size={15}/>{compared ? 'Selected' : 'Compare'}</button>
         <button className={`favorite-toggle ${favorite ? 'is-favorite' : ''}`} onClick={onToggle} aria-label={favorite ? `Remove ${r.name} from favorites` : `Add ${r.name} to favorites`} title="Save to favorites"><Heart size={18} fill={favorite ? 'currentColor' : 'none'}/></button>
         {r.homepage?.startsWith('https://') && <a className="homepage-link" href={r.homepage} target="_blank" rel="noopener noreferrer" title="Project website">Website <ArrowUpRight size={14}/></a>}<a className="visit-button" href={r.url} target="_blank" rel="noopener noreferrer">View repo <ArrowRight size={16}/></a>
       </div>
