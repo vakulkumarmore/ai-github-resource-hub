@@ -36005,5 +36005,103 @@
     "updatedAt": "2026-10-19T22:56:31Z",
     "homepage": "https://dsc.gg/jcodesmore",
     "license": "MIT"
+  },
+  {
+    "id": "agno-agi-agno",
+    "name": "agno",
+    "url": "https://github.com/agno-agi/agno",
+    "category": "Developer Tools",
+    "description": "GitHub repository by agno-agi.",
+    "oneLiner": "Explore the agno project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "crewaiinc-crewai",
+    "name": "crewAI",
+    "url": "https://github.com/crewAIInc/crewAI",
+    "category": "Developer Tools",
+    "description": "GitHub repository by crewAIInc.",
+    "oneLiner": "Explore the crewAI project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "pydantic-pydantic-ai",
+    "name": "pydantic-ai",
+    "url": "https://github.com/pydantic/pydantic-ai",
+    "category": "Developer Tools",
+    "description": "GitHub repository by pydantic.",
+    "oneLiner": "Explore the pydantic-ai project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "microsoft-semantic-kernel",
+    "name": "semantic-kernel",
+    "url": "https://github.com/microsoft/semantic-kernel",
+    "category": "Developer Tools",
+    "description": "GitHub repository by microsoft.",
+    "oneLiner": "Explore the semantic-kernel project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "letta-ai-letta",
+    "name": "letta",
+    "url": "https://github.com/letta-ai/letta",
+    "category": "Developer Tools",
+    "description": "GitHub repository by letta-ai.",
+    "oneLiner": "Explore the letta project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "qwenlm-qwen-agent",
+    "name": "Qwen-Agent",
+    "url": "https://github.com/QwenLM/Qwen-Agent",
+    "category": "AI Agents",
+    "description": "GitHub repository by QwenLM.",
+    "oneLiner": "Explore the Qwen-Agent project on GitHub.",
+    "hashtags": [
+      "#AIAgents",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "berriai-litellm",
+    "name": "litellm",
+    "url": "https://github.com/BerriAI/litellm",
+    "category": "Developer Tools",
+    "description": "GitHub repository by BerriAI.",
+    "oneLiner": "Explore the litellm project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
   }
 ]
