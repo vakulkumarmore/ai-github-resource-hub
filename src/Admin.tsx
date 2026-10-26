@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, Plus, RefreshCcw, Save, Search, ShieldAlert, ShieldCheck, Sparkles, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, LogIn, LogOut, Plus, RefreshCcw, Save, Search, ShieldAlert, ShieldCheck, Sparkles, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
 import Importer, { fetchMetadata, resourceKey, type Resource } from './Importer';
 import BulkAnalyzer from './BulkAnalyzer';
 import HealthReview from './HealthReview';
 import { apiJson } from './apiJson';
 import { cleanHashtag, githubDetailsToResource } from './resourceAnalysis';
+import './adminAuth.css';
 
 type AdminTab = 'resources' | 'import' | 'analyze' | 'health' | 'publish';
 type ResourceView = 'new' | 'all' | 'edited' | 'published';
@@ -20,6 +21,9 @@ function downloadJSON(items: Resource[]) {
 
 export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   const [owner, setOwner] = useState(false), [checked, setChecked] = useState(false);
+  const [login, setLogin] = useState<string | null>(null);
+  const [checkingAccount, setCheckingAccount] = useState(false);
+  const [reconnectNeeded, setReconnectNeeded] = useState(false);
   const [draft, setDraft] = useState<Resource[]>(publishedCatalog);
   const [tab, setTab] = useState<AdminTab>('resources');
   const [query, setQuery] = useState('');
@@ -33,10 +37,28 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   const [message, setMessage] = useState('');
   const [restorable, setRestorable] = useState<Resource[] | null>(null);
 
+  const verifyGitHubAccount = async () => {
+    setCheckingAccount(true);
+    try {
+      const response = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' });
+      const data = await apiJson<{owner: boolean; login?: string | null}>(response, '/api/me');
+      setOwner(!!data.owner);
+      setLogin(data.owner ? (data.login || null) : null);
+      if (data.owner) setReconnectNeeded(false);
+      return !!data.owner;
+    } catch (error) {
+      setOwner(false);
+      setLogin(null);
+      setMessage(error instanceof Error ? error.message : 'Unable to verify GitHub login.');
+      return false;
+    } finally {
+      setChecked(true);
+      setCheckingAccount(false);
+    }
+  };
+
   useEffect(() => {
-    fetch('/api/me', { credentials: 'same-origin' })
-      .then(r => apiJson<{owner:boolean}>(r, '/api/me')).then(data => setOwner(!!data.owner))
-      .catch(error => { setOwner(false); setMessage(error instanceof Error ? error.message : 'Unable to verify login.'); }).finally(() => setChecked(true));
+    void verifyGitHubAccount();
     try {
       const saved = sessionStorage.getItem('hub-admin-unsaved-draft');
       if (saved) {
@@ -47,6 +69,26 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   }, []);
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(publishedCatalog), [draft, publishedCatalog]);
+  // Persist the full unpublished catalog before navigating away for OAuth.
+  // sessionStorage is scoped to the current site and survives the GitHub redirect.
+  const rememberDraft = (): boolean => {
+    if (!dirty) return true;
+    try {
+      sessionStorage.setItem('hub-admin-unsaved-draft', JSON.stringify(draft));
+      return true;
+    } catch {
+      // Large catalogs can exceed the browser's per-tab storage limit.
+      // Do not redirect and risk silently losing unpublished work.
+      downloadJSON(draft);
+      setMessage('Browser draft storage is full. A JSON backup was downloaded. Keep this tab open until you have saved your changes.');
+      return false;
+    }
+  };
+  const navigateToAuth = (action: 'login' | 'logout') => {
+    if (!rememberDraft()) return;
+    window.location.assign(action === 'login' ? '/api/login' : '/api/logout');
+  };
+
   useEffect(() => {
     if (!dirty) return;
     try { sessionStorage.setItem('hub-admin-unsaved-draft', JSON.stringify(draft)); } catch { /* optional draft recovery */ }
@@ -161,7 +203,23 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     if (!window.confirm(`Publish ${draft.length} resources to GitHub? This includes ${added} additions, ${updated} updates and ${removed} deletions.`)) return;
     setBusy(true); setMessage('Publishing your catalog to GitHub...');
     try {
+      // /api/me verifies the session cookie. It does not guarantee the GitHub
+      // access token is still authorized; failed GitHub writes offer Reconnect.
+      const accountResponse = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' });
+      const account = await apiJson<{owner: boolean; login?: string | null}>(accountResponse, '/api/me');
+      if (!account.owner) {
+        rememberDraft();
+        setOwner(false);
+        setLogin(null);
+        throw new Error('Your GitHub session has expired. Your draft is saved in this browser. Sign in again, then select Restore draft.');
+      }
+      setLogin(account.login || null);
       const response = await fetch('/api/catalog', { method: 'PUT', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(draft) });
+      if (response.status === 401 || response.status === 403) {
+        // A revoked token can fail even when the encrypted session cookie is valid.
+        rememberDraft();
+        setReconnectNeeded(true);
+      }
       const result = await apiJson<{error?: string;message?: string}>(response, '/api/catalog');
       onSaved(draft);
       setDraft(draft); setSnapshot(null); setSelected([]); setRestorable(null); setView('all'); setPage(1);
@@ -174,10 +232,23 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   };
 
   if (!checked) return <div className="workspace auth-message"><LoaderCircle className="spin"/> Checking your GitHub sign-in...</div>;
-  if (!owner) return <main className="workspace auth-message"><div className="auth-card"><div className="auth-icon"><Lock size={24}/></div><h1>Owner workspace</h1><p>Sign in with your configured GitHub account to manage the public catalog.</p><a className="btn primary" href="/api/login"><Github size={18}/> Sign in with GitHub</a><button className="btn subtle" onClick={onBack}>Back to library</button></div></main>;
+  if (!owner) return <main className="workspace auth-message"><div className="auth-card"><div className="auth-icon"><Lock size={24}/></div><h1>Connect your GitHub account</h1><p>Sign in as <strong>vakulkumarmore</strong> to publish your resources. Your unpublished draft can be restored after login.</p>{message && <p role="alert" className="hub-auth-error">{message}</p>}<div className="hub-auth-buttons"><button type="button" className="btn primary" onClick={() => navigateToAuth('login')}><Github size={18}/> Sign in with GitHub</button><button type="button" className="btn subtle" disabled={checkingAccount} onClick={() => void verifyGitHubAccount()}><RefreshCcw size={16}/> Check sign-in</button><button type="button" className="btn subtle" onClick={() => navigateToAuth('logout')}><LogOut size={16}/> Sign out</button></div>{restorable && <button type="button" className="btn subtle" onClick={() => downloadJSON(restorable)}><Download size={16}/> Download recovered draft ({restorable.length})</button>}<button className="btn subtle" onClick={onBack}>Back to library</button></div></main>;
 
   return <main className="workspace" id="admin">
     <div className="workspace-header"><div><button className="backlink" onClick={onBack}><ArrowLeft size={16}/> Back to resource library</button><div className="workspace-kicker"><ShieldCheck size={15}/> OWNER WORKSPACE</div><h1>Manage your resources</h1><p>Import, organize and publish from one place. Your changes remain private until you save.</p></div><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Download backup</button></div>
+    <section className="hub-account-panel" aria-label="GitHub account connection">
+      <div className="hub-account-identity">
+        <div className="hub-account-mark"><Github size={22}/></div>
+        <div><div className="hub-account-label">Publishing account</div><strong>{login || 'GitHub account connected'}</strong><p>Publishing to vakulkumarmore/ai-github-resource-hub</p></div>
+        <span className="hub-account-status">Connected</span>
+      </div>
+      <div className="hub-account-actions">
+        <button type="button" className="btn subtle small" disabled={checkingAccount || busy} onClick={() => void verifyGitHubAccount()}><RefreshCcw size={15}/> {checkingAccount ? 'Checking...' : 'Check status'}</button>
+        <button type="button" className="btn subtle small" disabled={busy} onClick={() => navigateToAuth('login')}><LogIn size={15}/> Reconnect</button>
+        <button type="button" className="btn subtle small" disabled={busy} onClick={() => navigateToAuth('logout')}><LogOut size={15}/> Sign out</button>
+      </div>
+    </section>
+    {reconnectNeeded && <div className="hub-auth-warning" role="alert"><AlertCircle size={18}/><span>GitHub rejected the publishing request. Your draft is preserved. Try reconnecting as <strong>vakulkumarmore</strong>, then publish again.</span><button className="btn primary small" onClick={() => navigateToAuth('login')}><LogIn size={15}/> Reconnect GitHub</button></div>}
     {restorable && <div className="notice info-notice"><AlertCircle size={18}/><span>An unpublished draft from this browser is available.</span><button className="btn small" onClick={restore}>Restore draft</button><button className="icon-btn" aria-label="Dismiss recovery" onClick={() => setRestorable(null)}><X size={17}/></button></div>}
     <div className="workspace-stats"><div><strong>{draft.length}</strong><span>Resources in draft</span></div><div><strong>+{added}</strong><span>Added</span></div><div><strong>{updated}</strong><span>Edited</span></div><div><strong>{removed}</strong><span>Removed</span></div></div>
     <nav className="workspace-tabs" aria-label="Admin workspace sections">
@@ -220,6 +291,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       {totalPages > 1 && <div className="pagination"><span>Page {Math.min(page, totalPages)} of {totalPages}</span><div><button className="btn subtle small" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ArrowLeft size={15}/> Previous</button><button className="btn subtle small" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next <ArrowRight size={15}/></button></div></div>}
     </div>}
 
+    {tab === 'publish' && <div className="hub-publish-account-note"><Github size={16}/> Publishing as <strong>{login || 'connected GitHub owner'}</strong>. Trouble publishing? <button type="button" onClick={() => navigateToAuth('login')}>Reconnect your GitHub account</button>.</div>}
     {tab === 'publish' && <div className="workspace-panel publish-panel"><div className="publish-icon"><Github size={26}/></div><h2>Publish your resource catalog</h2><p>Review your pending changes, then save them directly to <strong>vakulkumarmore/ai-github-resource-hub</strong>. Your Cloudflare deployment will update the public website.</p><div className="publish-steps"><div><strong>{draft.length}</strong><span>Total resources</span></div><div><strong>+{added}</strong><span>New links</span></div><div><strong>{updated}</strong><span>Edits</span></div><div><strong>{removed}</strong><span>Deletions</span></div></div>{dirty ? <div className="notice info-notice"><AlertCircle size={18}/> You have unpublished changes.</div> : <div className="notice"><CheckCircle2 size={18}/> Your draft matches the published catalog.</div>}<div className="publish-actions"><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Download backup</button><button className="btn primary" disabled={!dirty || busy} onClick={publish}>{busy ? <LoaderCircle className="spin" size={17}/> : <Save size={17}/>} {busy ? 'Publishing...' : `Save Changes to GitHub (${draft.length})`}</button></div><p className="publish-note">You can safely leave this page after a successful save. Cloudflare deployment and browser caching may take a short time.</p></div>}
 
     <div className="publish-bar"><div><span className={dirty ? 'dirty-indicator' : 'clean-indicator'}/><strong>{dirty ? `${added} added · ${updated} edited · ${removed} deleted` : 'All changes published'}</strong><span>{draft.length} resources in catalog</span></div><div><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Backup</button><button className="btn primary" disabled={!dirty || busy} onClick={publish}>{busy ? <LoaderCircle className="spin" size={16}/> : <Save size={16}/>} {busy ? 'Saving...' : `Save Changes to GitHub (${draft.length})`}</button></div></div>
