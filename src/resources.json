@@ -36103,5 +36103,61 @@
     ],
     "tags": [],
     "type": "repository"
+  },
+  {
+    "id": "karpathy-micrograd",
+    "name": "micrograd",
+    "url": "https://github.com/karpathy/micrograd",
+    "category": "Developer Tools",
+    "description": "GitHub repository by karpathy.",
+    "oneLiner": "Explore the micrograd project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "karpathy-nn-zero-to-hero",
+    "name": "nn-zero-to-hero",
+    "url": "https://github.com/karpathy/nn-zero-to-hero",
+    "category": "Developer Tools",
+    "description": "GitHub repository by karpathy.",
+    "oneLiner": "Explore the nn-zero-to-hero project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "karpathy-minbpe",
+    "name": "minbpe",
+    "url": "https://github.com/karpathy/minbpe",
+    "category": "Developer Tools",
+    "description": "GitHub repository by karpathy.",
+    "oneLiner": "Explore the minbpe project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
+  },
+  {
+    "id": "karpathy-nanogpt",
+    "name": "nanoGPT",
+    "url": "https://github.com/karpathy/nanoGPT",
+    "category": "Developer Tools",
+    "description": "GitHub repository by karpathy.",
+    "oneLiner": "Explore the nanoGPT project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
   }
 ]
