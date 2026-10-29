@@ -36159,5 +36159,19 @@
     ],
     "tags": [],
     "type": "repository"
+  },
+  {
+    "id": "togg53192-cmd-jailbreaks",
+    "name": "jailbreaks",
+    "url": "https://github.com/togg53192-cmd/jailbreaks",
+    "category": "Developer Tools",
+    "description": "GitHub repository by togg53192-cmd.",
+    "oneLiner": "Explore the jailbreaks project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
   }
 ]
