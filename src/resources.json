@@ -36173,5 +36173,19 @@
     ],
     "tags": [],
     "type": "repository"
+  },
+  {
+    "id": "debpalash-voicestudio",
+    "name": "VoiceStudio",
+    "url": "https://github.com/debpalash/VoiceStudio",
+    "category": "Developer Tools",
+    "description": "GitHub repository by debpalash.",
+    "oneLiner": "Explore the VoiceStudio project on GitHub.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository"
   }
 ]
