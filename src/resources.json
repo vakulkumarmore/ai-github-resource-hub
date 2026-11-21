@@ -36224,5 +36224,62 @@
     "updatedAt": "2026-11-21T02:26:54Z",
     "homepage": "https://paperclip.ing",
     "license": "MIT"
+  },
+  {
+    "id": "leepokai-codync",
+    "name": "Codync",
+    "url": "https://github.com/leepokai/Codync",
+    "category": "Claude",
+    "description": "Open source Grok Bot alternative, Bring your own agent and subscription: message Claude Code, Codex, Gemini CLI, Cursor, Copilot and 40+ AI agents as bots on your own computer, from iPhone, Mac, Windows, Linux or terminal. Agent-agnostic and free. Also a Muse and Dots alternative. Built in Rust.",
+    "oneLiner": "Open source Grok Bot alternative, Bring your own agent and subscription: message Claude Code, Codex, Gemini CLI, Cursor, Copilot and 40+…",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#acp",
+      "#agentclientprotocol",
+      "#aiagents",
+      "#aiassistant"
+    ],
+    "tags": [
+      "acp",
+      "agent-client-protocol",
+      "ai-agents",
+      "ai-assistant",
+      "claude",
+      "claude-code",
+      "codex",
+      "coding-agents",
+      "cursor",
+      "gemini",
+      "gemini-cli",
+      "grok-bot-alternative"
+    ],
+    "type": "repository",
+    "language": "Rust",
+    "stars": 2352,
+    "forks": 241,
+    "updatedAt": "2026-11-20T23:22:14Z",
+    "homepage": "https://www.codync.dev",
+    "license": "Apache-2.0"
+  },
+  {
+    "id": "andrewyng-openworker",
+    "name": "openworker",
+    "url": "https://github.com/andrewyng/openworker",
+    "category": "Developer Tools",
+    "description": "GitHub repository by andrewyng.",
+    "oneLiner": "Explore openworker, an open-source project written in Python.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#Python",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository",
+    "language": "Python",
+    "stars": 19490,
+    "forks": 2791,
+    "updatedAt": "2026-11-20T23:39:00Z",
+    "license": "MIT"
   }
 ]
