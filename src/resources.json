@@ -36187,5 +36187,42 @@
     ],
     "tags": [],
     "type": "repository"
+  },
+  {
+    "id": "paperclipai-paperclip",
+    "name": "paperclip",
+    "url": "https://github.com/paperclipai/paperclip",
+    "category": "Claude",
+    "description": "The open-source app everyone uses to manage agents at work",
+    "oneLiner": "The open-source app everyone uses to manage agents at work.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#acpx",
+      "#agentorchestration",
+      "#agentskills",
+      "#agenticai"
+    ],
+    "tags": [
+      "acpx",
+      "agent-orchestration",
+      "agent-skills",
+      "agentic-ai",
+      "ai-agents",
+      "ai-engineering",
+      "ai-governance",
+      "ai-tools",
+      "autonomous-agents",
+      "claude",
+      "claude-code",
+      "claude-skills"
+    ],
+    "type": "repository",
+    "language": "TypeScript",
+    "stars": 115507,
+    "forks": 19160,
+    "updatedAt": "2026-11-21T02:26:54Z",
+    "homepage": "https://paperclip.ing",
+    "license": "MIT"
   }
 ]
