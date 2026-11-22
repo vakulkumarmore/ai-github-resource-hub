@@ -36301,5 +36301,40 @@
     "forks": 919,
     "updatedAt": "2026-11-20T06:19:59Z",
     "license": "MIT"
+  },
+  {
+    "id": "cporter202-tiktok-instagram-scraping-apis",
+    "name": "tiktok-instagram-scraping-apis",
+    "url": "https://github.com/cporter202/tiktok-instagram-scraping-apis",
+    "category": "Developer Tools",
+    "description": "A mega collection of 839 TikTok & Instagram scraping APIs: viral videos, reels, hashtags, trends, profiles, comments. Research viral content programmatically.",
+    "oneLiner": "A mega collection of 839 TikTok & Instagram scraping APIs: viral videos, reels, hashtags, trends, profiles, comments.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#apify",
+      "#apis",
+      "#contentresearch",
+      "#hashtags",
+      "#instagram"
+    ],
+    "tags": [
+      "apify",
+      "apis",
+      "content-research",
+      "hashtags",
+      "instagram",
+      "reels",
+      "social-media",
+      "tiktok",
+      "viral",
+      "web-scraping"
+    ],
+    "type": "repository",
+    "language": "",
+    "stars": 141,
+    "forks": 26,
+    "updatedAt": "2026-10-20T04:12:50Z",
+    "homepage": "https://apify.com?fpr=p2hrc6",
+    "license": "MIT"
   }
 ]
