@@ -36281,5 +36281,25 @@
     "forks": 2791,
     "updatedAt": "2026-11-20T23:39:00Z",
     "license": "MIT"
+  },
+  {
+    "id": "augani-openreel-video",
+    "name": "openreel-video",
+    "url": "https://github.com/Augani/openreel-video",
+    "category": "Developer Tools",
+    "description": "OpenReel Video - Professional browser-based video editor. Open source CapCut alternative. 100% browser-based, no installation, no cloud uploads, no watermarks.",
+    "oneLiner": "OpenReel Video - Professional browser-based video editor.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#TypeScript",
+      "#OpenSource"
+    ],
+    "tags": [],
+    "type": "repository",
+    "language": "TypeScript",
+    "stars": 6199,
+    "forks": 919,
+    "updatedAt": "2026-11-20T06:19:59Z",
+    "license": "MIT"
   }
 ]
