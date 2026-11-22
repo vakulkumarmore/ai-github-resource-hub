@@ -36504,5 +36504,42 @@
     "updatedAt": "2026-10-20T04:12:50Z",
     "homepage": "https://apify.com?fpr=p2hrc6",
     "license": "MIT"
+  },
+  {
+    "id": "xiaoyouchr-ghost-downloader-3",
+    "name": "Ghost-Downloader-3",
+    "url": "https://github.com/XiaoYouChR/Ghost-Downloader-3",
+    "category": "Developer Tools",
+    "description": "The only downloader you need. 下载器的集大成者。",
+    "oneLiner": "The only downloader you need. 下载器的集大成者。.",
+    "hashtags": [
+      "#DeveloperTools",
+      "#async",
+      "#asyncio",
+      "#bittorent",
+      "#bt",
+      "#crossplatform"
+    ],
+    "tags": [
+      "async",
+      "asyncio",
+      "bittorent",
+      "bt",
+      "cross-platform",
+      "download-manager",
+      "downloader",
+      "fluent-design",
+      "ftp",
+      "http3",
+      "magnet",
+      "pyqt"
+    ],
+    "type": "repository",
+    "language": "Python",
+    "stars": 15101,
+    "forks": 907,
+    "updatedAt": "2026-11-22T15:12:09Z",
+    "homepage": "https://gd.xychr.com/",
+    "license": "GPL-3.0"
   }
 ]
