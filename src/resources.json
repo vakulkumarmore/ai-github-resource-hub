@@ -36604,5 +36604,42 @@
     "updatedAt": "2026-11-15T18:08:08Z",
     "homepage": "https://yiwen-song.github.io/paper_orchestra/",
     "license": "Apache-2.0"
+  },
+  {
+    "id": "paddlepaddle-paddleocr",
+    "name": "PaddleOCR",
+    "url": "https://github.com/PaddlePaddle/PaddleOCR",
+    "category": "RAG & Vector Search",
+    "description": "Turn any PDF or image document into structured data for your AI. A powerful, lightweight OCR toolkit that bridges the gap between images/PDFs and LLMs. Supports 100+ languages.",
+    "oneLiner": "Turn any PDF or image document into structured data for your AI.",
+    "hashtags": [
+      "#RAG",
+      "#VectorSearch",
+      "#ai4science",
+      "#chineseocr",
+      "#documentparsing",
+      "#documenttranslation"
+    ],
+    "tags": [
+      "ai4science",
+      "chineseocr",
+      "document-parsing",
+      "document-translation",
+      "kie",
+      "ocr",
+      "paddleocr-vl",
+      "pdf-extractor-rag",
+      "pdf-parser",
+      "pdf2markdown",
+      "pp-ocr",
+      "pp-structure"
+    ],
+    "type": "repository",
+    "language": "Python",
+    "stars": 93011,
+    "forks": 11660,
+    "updatedAt": "2026-09-16T03:31:50Z",
+    "homepage": "https://www.paddleocr.com",
+    "license": "Apache-2.0"
   }
 ]
