@@ -36578,5 +36578,31 @@
     "updatedAt": "2026-11-22T20:06:02Z",
     "homepage": "https://www.npmjs.com/package/rust-anything",
     "license": "MIT"
+  },
+  {
+    "id": "google-research-paper-orchestra",
+    "name": "paper-orchestra",
+    "url": "https://github.com/google-research/paper-orchestra",
+    "category": "AI Agents",
+    "description": "PaperOrchestra is a multi-agent framework for automated AI research paper writing.",
+    "oneLiner": "PaperOrchestra is a multi-agent framework for automated AI research paper writing.",
+    "hashtags": [
+      "#AIAgents",
+      "#airesearchassistant",
+      "#multiagentsystems",
+      "#Python",
+      "#OpenSource"
+    ],
+    "tags": [
+      "ai-research-assistant",
+      "multi-agent-systems"
+    ],
+    "type": "repository",
+    "language": "Python",
+    "stars": 5957,
+    "forks": 768,
+    "updatedAt": "2026-11-15T18:08:08Z",
+    "homepage": "https://yiwen-song.github.io/paper_orchestra/",
+    "license": "Apache-2.0"
   }
 ]
