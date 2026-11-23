@@ -36606,40 +36606,23 @@
     "license": "Apache-2.0"
   },
   {
-    "id": "paddlepaddle-paddleocr",
-    "name": "PaddleOCR",
-    "url": "https://github.com/PaddlePaddle/PaddleOCR",
-    "category": "RAG & Vector Search",
-    "description": "Turn any PDF or image document into structured data for your AI. A powerful, lightweight OCR toolkit that bridges the gap between images/PDFs and LLMs. Supports 100+ languages.",
-    "oneLiner": "Turn any PDF or image document into structured data for your AI.",
+    "id": "zadescoxp-calibrain-harness",
+    "name": "calibrain-harness",
+    "url": "https://github.com/zadescoxp/calibrain-harness",
+    "category": "Developer Tools",
+    "description": "Calibrain Harness: a forward-testing harness for trading crypto perpetuals with fast classification models (Kairos today) on Bybit testnet. Under development.",
+    "oneLiner": "Calibrain Harness: a forward-testing harness for trading crypto perpetuals with fast classification models (Kairos today) on Bybit testnet.",
     "hashtags": [
-      "#RAG",
-      "#VectorSearch",
-      "#ai4science",
-      "#chineseocr",
-      "#documentparsing",
-      "#documenttranslation"
+      "#DeveloperTools",
+      "#Python",
+      "#OpenSource"
     ],
-    "tags": [
-      "ai4science",
-      "chineseocr",
-      "document-parsing",
-      "document-translation",
-      "kie",
-      "ocr",
-      "paddleocr-vl",
-      "pdf-extractor-rag",
-      "pdf-parser",
-      "pdf2markdown",
-      "pp-ocr",
-      "pp-structure"
-    ],
+    "tags": [],
     "type": "repository",
     "language": "Python",
-    "stars": 93011,
-    "forks": 11660,
-    "updatedAt": "2026-09-16T03:31:50Z",
-    "homepage": "https://www.paddleocr.com",
-    "license": "Apache-2.0"
+    "stars": 497,
+    "forks": 101,
+    "updatedAt": "2026-11-21T08:57:38Z",
+    "license": "MIT"
   }
 ]
