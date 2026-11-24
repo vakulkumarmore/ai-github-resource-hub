@@ -210,6 +210,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
             passed[k] = {checkedAt: new Date().toISOString(), archived: !!info.archived, type: info.type!};
             metadata.set(k, {
               ...(typeof info.stargazers_count === 'number' ? {stars: info.stargazers_count} : {}),
+              ...(typeof info.archived === 'boolean' ? {archived: info.archived} : {}),
               ...(typeof info.forks_count === 'number' ? {forks: info.forks_count} : {}),
               ...(info.language ? {language: info.language} : {}),
               ...((info.pushed_at || info.updated_at) ? {updatedAt: (info.pushed_at || info.updated_at)!} : {}),
