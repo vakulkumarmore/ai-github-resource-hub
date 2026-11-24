@@ -247,7 +247,7 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
         </li>)}</ol>
         {lastBatchErrors.length === 0 && <p>The API request itself failed before individual results were recorded; the error message above has more detail.</p>}
       </div>
-    </div>
+    </div>}
     {(failures > 0 || needsReconnect) && <div className="notice info-notice" role="alert">
       <AlertCircle size={18}/>
       <div style={{flex:1}}>
