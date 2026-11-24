@@ -1,9 +1,13 @@
-name: Diagnose frontend production build
+name: Verify production build
 
 on:
   push:
     branches:
+      - main
       - fix/cloudflare-build-errors-v30
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -18,7 +22,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install
+      - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build
+      - name: Check Worker syntax
+        run: node --check worker/index.js
+      - name: Build TypeScript and Vite
         run: npm run build
