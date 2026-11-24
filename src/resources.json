@@ -7821,20 +7821,6 @@
     "license": "Apache-2.0"
   },
   {
-    "id": "chavinlo-alpaca-native",
-    "name": "alpaca-native",
-    "url": "https://github.com/chavinlo/alpaca-native",
-    "category": "Developer Tools",
-    "description": "GitHub repository by chavinlo.",
-    "oneLiner": "Explore the alpaca-native project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "tatsu-lab-stanford-alpaca",
     "name": "stanford_alpaca",
     "url": "https://github.com/tatsu-lab/stanford_alpaca",
@@ -7896,20 +7882,6 @@
     "updatedAt": "2026-11-12T10:19:36Z",
     "homepage": "https://microsoft.github.io/autogen/",
     "license": "CC-BY-4.0"
-  },
-  {
-    "id": "srinivasan-awesome-ai",
-    "name": "awesome-ai",
-    "url": "https://github.com/Srinivasan/awesome-ai",
-    "category": "Developer Tools",
-    "description": "GitHub repository by Srinivasan.",
-    "oneLiner": "Explore the awesome-ai project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "lllyasviel-controlnet",
@@ -7979,20 +7951,6 @@
     "forks": 3092,
     "updatedAt": "2025-12-16T08:36:18Z",
     "license": "MIT"
-  },
-  {
-    "id": "run-pod-runpod-python",
-    "name": "runpod-python",
-    "url": "https://github.com/run-pod/runpod-python",
-    "category": "Developer Tools",
-    "description": "GitHub repository by run-pod.",
-    "oneLiner": "Explore the runpod-python project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "vllm-project-vllm",
@@ -8646,20 +8604,6 @@
     "license": "Apache-2.0"
   },
   {
-    "id": "onnx-onnx-runtime",
-    "name": "onnx-runtime",
-    "url": "https://github.com/onnx/onnx-runtime",
-    "category": "Developer Tools",
-    "description": "GitHub repository by onnx.",
-    "oneLiner": "Explore the onnx-runtime project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "intel-isl-open3d",
     "name": "Open3D",
     "url": "https://github.com/intel-isl/Open3D",
@@ -9185,20 +9129,6 @@
     "license": "MIT"
   },
   {
-    "id": "html5boilerplate-html5-boilerplate",
-    "name": "html5-boilerplate",
-    "url": "https://github.com/html5boilerplate/html5-boilerplate",
-    "category": "Developer Tools",
-    "description": "GitHub repository by html5boilerplate.",
-    "oneLiner": "Explore the html5-boilerplate project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "modernizr-modernizr",
     "name": "Modernizr",
     "url": "https://github.com/modernizr/modernizr",
@@ -9592,20 +9522,6 @@
     "updatedAt": "2026-11-24T08:58:15Z",
     "homepage": "https://koajs.com",
     "license": "MIT"
-  },
-  {
-    "id": "sideway-hapi",
-    "name": "hapi",
-    "url": "https://github.com/sideway/hapi",
-    "category": "Developer Tools",
-    "description": "GitHub repository by sideway.",
-    "oneLiner": "Explore the hapi project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "feathersjs-feathers",
@@ -10611,20 +10527,6 @@
     "forks": 2192,
     "updatedAt": "2026-11-11T07:16:45Z",
     "homepage": "https://scrollrevealjs.org/"
-  },
-  {
-    "id": "imakwebthings-waypoints",
-    "name": "waypoints",
-    "url": "https://github.com/imakwebthings/waypoints",
-    "category": "Developer Tools",
-    "description": "GitHub repository by imakwebthings.",
-    "oneLiner": "Explore the waypoints project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "locomotivemtl-locomotive-scroll",
@@ -12484,20 +12386,6 @@
     "license": "MIT"
   },
   {
-    "id": "gitlab-org-gitlab-runner",
-    "name": "gitlab-runner",
-    "url": "https://github.com/gitlab-org/gitlab-runner",
-    "category": "Developer Tools",
-    "description": "GitHub repository by gitlab-org.",
-    "oneLiner": "Explore the gitlab-runner project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "tektoncd-pipeline",
     "name": "pipeline",
     "url": "https://github.com/tektoncd/pipeline",
@@ -13437,20 +13325,6 @@
     "license": "Apache-2.0"
   },
   {
-    "id": "vitess-vitess",
-    "name": "vitess",
-    "url": "https://github.com/vitess/vitess",
-    "category": "Developer Tools",
-    "description": "GitHub repository by vitess.",
-    "oneLiner": "Explore the vitess project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "clickhouse-clickhouse",
     "name": "ClickHouse",
     "url": "https://github.com/ClickHouse/ClickHouse",
@@ -13615,20 +13489,6 @@
     "updatedAt": "2026-11-24T20:37:01Z",
     "homepage": "https://hbase.apache.org/",
     "license": "Apache-2.0"
-  },
-  {
-    "id": "facebookarchive-scuba",
-    "name": "scuba",
-    "url": "https://github.com/facebookarchive/scuba",
-    "category": "Developer Tools",
-    "description": "GitHub repository by facebookarchive.",
-    "oneLiner": "Explore the scuba project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "dgraph-io-dgraph",
@@ -14280,20 +14140,6 @@
     "license": "Apache-2.0"
   },
   {
-    "id": "hypersql-hsqldb",
-    "name": "hsqldb",
-    "url": "https://github.com/hypersql/hsqldb",
-    "category": "Developer Tools",
-    "description": "GitHub repository by hypersql.",
-    "oneLiner": "Explore the hsqldb project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "realm-realm-core",
     "name": "realm-core",
     "url": "https://github.com/realm/realm-core",
@@ -14510,20 +14356,6 @@
     "license": "NOASSERTION"
   },
   {
-    "id": "housepower-clickhouse-bulk",
-    "name": "ClickHouse-Bulk",
-    "url": "https://github.com/housepower/ClickHouse-Bulk",
-    "category": "Developer Tools",
-    "description": "GitHub repository by housepower.",
-    "oneLiner": "Explore the ClickHouse-Bulk project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "percona-percona-xtrabackup",
     "name": "percona-xtrabackup",
     "url": "https://github.com/percona/percona-xtrabackup",
@@ -14587,20 +14419,6 @@
     "forks": 610,
     "updatedAt": "2026-11-24T20:41:38Z",
     "license": "NOASSERTION"
-  },
-  {
-    "id": "scrappy-db-scrappy",
-    "name": "scrappy",
-    "url": "https://github.com/scrappy-db/scrappy",
-    "category": "Developer Tools",
-    "description": "GitHub repository by scrappy-db.",
-    "oneLiner": "Explore the scrappy project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "ferretdb-ferretdb",
@@ -14667,20 +14485,6 @@
     "forks": 13833,
     "updatedAt": "2026-06-12T13:49:06Z",
     "homepage": "https://www.algomooc.com"
-  },
-  {
-    "id": "tech-interview-handbook-tech-interview-handbook",
-    "name": "tech-interview-handbook",
-    "url": "https://github.com/tech-interview-handbook/tech-interview-handbook",
-    "category": "Developer Tools",
-    "description": "GitHub repository by tech-interview-handbook.",
-    "oneLiner": "Explore the tech-interview-handbook project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "azl397985856-leetcode",
@@ -14928,20 +14732,6 @@
     "license": "MIT"
   },
   {
-    "id": "30-seconds-of-code-30-seconds-of-code",
-    "name": "30-seconds-of-code",
-    "url": "https://github.com/30-seconds-of-code/30-seconds-of-code",
-    "category": "Developer Tools",
-    "description": "GitHub repository by 30-seconds-of-code.",
-    "oneLiner": "Explore the 30-seconds-of-code project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "algorithm-visualizer-algorithm-visualizer",
     "name": "algorithm-visualizer",
     "url": "https://github.com/algorithm-visualizer/algorithm-visualizer",
@@ -15175,20 +14965,6 @@
     "license": "MIT"
   },
   {
-    "id": "public-apis-awesome-api",
-    "name": "awesome-api",
-    "url": "https://github.com/public-apis/awesome-api",
-    "category": "Developer Tools",
-    "description": "GitHub repository by public-apis.",
-    "oneLiner": "Explore the awesome-api project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
     "id": "gothinkster-realworld",
     "name": "realworld",
     "url": "https://github.com/gothinkster/realworld",
@@ -15302,34 +15078,6 @@
     "forks": 772,
     "updatedAt": "2026-09-02T21:51:06Z",
     "homepage": "https://basecamp.com/handbook"
-  },
-  {
-    "id": "gitlab-com-www-gitlab-com",
-    "name": "www-gitlab-com",
-    "url": "https://github.com/gitlab-com/www-gitlab-com",
-    "category": "Developer Tools",
-    "description": "GitHub repository by gitlab-com.",
-    "oneLiner": "Explore the www-gitlab-com project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
-  },
-  {
-    "id": "k8scat-awesome-clickhouse",
-    "name": "Awesome-ClickHouse",
-    "url": "https://github.com/K8sCat/Awesome-ClickHouse",
-    "category": "Developer Tools",
-    "description": "GitHub repository by K8sCat.",
-    "oneLiner": "Explore the Awesome-ClickHouse project on GitHub.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#OpenSource"
-    ],
-    "tags": [],
-    "type": "repository"
   },
   {
     "id": "juliusbrussee-caveman",
@@ -26073,36 +25821,6 @@
     "license": "MIT"
   },
   {
-    "id": "plexpt-awesome-chatgpt-prompts-zh",
-    "name": "awesome-chatgpt-prompts-zh",
-    "url": "https://github.com/PlexPt/awesome-chatgpt-prompts-zh",
-    "category": "Developer Tools",
-    "description": "ChatGPT 中文调教指南。各种场景使用指南。学习怎么让它听你的话。",
-    "oneLiner": "ChatGPT 中文调教指南。各种场景使用指南。学习怎么让它听你的话。.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#chatgpt",
-      "#chatgpt3",
-      "#chatgpt4",
-      "#gpt",
-      "#OpenSource"
-    ],
-    "tags": [
-      "chat-gpt",
-      "chatgpt",
-      "chatgpt3",
-      "chatgpt4",
-      "gpt"
-    ],
-    "type": "repository",
-    "language": "",
-    "stars": 63966,
-    "forks": 13545,
-    "updatedAt": "2026-04-28T10:52:14Z",
-    "homepage": "https://chat.aimakex.com/",
-    "license": "MIT"
-  },
-  {
     "id": "karpathy-nanochat",
     "name": "nanochat",
     "url": "https://github.com/karpathy/nanochat",
@@ -28668,40 +28386,6 @@
     "forks": 1401,
     "updatedAt": "2025-08-28T16:07:56Z",
     "license": "MIT"
-  },
-  {
-    "id": "plexpt-chatgpt-java",
-    "name": "chatgpt-java",
-    "url": "https://github.com/PlexPt/chatgpt-java",
-    "category": "Developer Tools",
-    "description": "ChatGPT Java SDK。支持 GPT-4o、 GPT-5 API。开箱即用。An unofficial Java SDK for seamless integration with ChatGPT's GPT-5 and GPT-4 APIs. Ready-to-use, simple setup, and efficient for building AI-powered applications.",
-    "oneLiner": "ChatGPT Java SDK。支持 GPT-4o、 GPT-5 API。开箱即用。An unofficial Java SDK for seamless integration with ChatGPT's GPT-5 and GPT-4 APIs.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#chatgpt",
-      "#chatgptapi",
-      "#chatgptapiwrapper",
-      "#chatgptbot",
-      "#chatgptsdk"
-    ],
-    "tags": [
-      "chatgpt",
-      "chatgpt-api",
-      "chatgpt-api-wrapper",
-      "chatgpt-bot",
-      "chatgpt-sdk",
-      "chatgpt3",
-      "chatgpt4",
-      "gpt4",
-      "java"
-    ],
-    "type": "repository",
-    "language": "Java",
-    "stars": 3571,
-    "forks": 676,
-    "updatedAt": "2025-11-29T16:41:52Z",
-    "homepage": "https://chat.plexpt.com/",
-    "license": "GPL-3.0"
   },
   {
     "id": "ricklamers-gpt-code-ui",
@@ -31320,41 +31004,6 @@
     "license": "NOASSERTION"
   },
   {
-    "id": "ik190-macos-chatgpt-overlay-bar",
-    "name": "macos-chatgpt-overlay-bar",
-    "url": "https://github.com/ik190/macos-chatgpt-overlay-bar",
-    "category": "Developer Tools",
-    "description": "ChatGPT for Mac, living in your menubar.",
-    "oneLiner": "ChatGPT for Mac, living in your menubar.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#ai",
-      "#chatgpt",
-      "#chatgptbarmac",
-      "#chatgptmenubarmac",
-      "#chatgptquickaccessmac"
-    ],
-    "tags": [
-      "ai",
-      "chatgpt",
-      "chatgpt-bar-mac",
-      "chatgpt-menubar-mac",
-      "chatgpt-quick-access-mac",
-      "chatgpt-statusbar",
-      "free-gpt-bar",
-      "mac",
-      "macos",
-      "macos-ai",
-      "macos-ai-app",
-      "macos-app"
-    ],
-    "type": "repository",
-    "language": "",
-    "stars": 1323,
-    "forks": 65,
-    "updatedAt": "2026-06-26T13:59:05Z"
-  },
-  {
     "id": "pandabearlab-prompt-tutorial",
     "name": "prompt-tutorial",
     "url": "https://github.com/PandaBearLab/prompt-tutorial",
@@ -32649,35 +32298,6 @@
     "updatedAt": "2025-02-13T06:16:14Z",
     "homepage": "https://xqdoo00o.github.io/chatgpt-web/",
     "license": "MIT"
-  },
-  {
-    "id": "plexpt-chatgpt-corpus",
-    "name": "chatgpt-corpus",
-    "url": "https://github.com/PlexPt/chatgpt-corpus",
-    "category": "Developer Tools",
-    "description": "ChatGPT 中文语料库 对话语料 小说语料 客服语料 用于训练大模型",
-    "oneLiner": "ChatGPT 中文语料库 对话语料 小说语料 客服语料 用于训练大模型.",
-    "hashtags": [
-      "#DeveloperTools",
-      "#awesome",
-      "#corpus",
-      "#corpusdata",
-      "#questionanswering",
-      "#OpenSource"
-    ],
-    "tags": [
-      "awesome",
-      "corpus",
-      "corpus-data",
-      "question-answering"
-    ],
-    "type": "repository",
-    "language": "",
-    "stars": 975,
-    "forks": 146,
-    "updatedAt": "2024-05-15T13:06:46Z",
-    "homepage": "https://chat.aimakex.com/",
-    "license": "GPL-3.0"
   },
   {
     "id": "bujue3709-gpt-conversation-toolkit",
