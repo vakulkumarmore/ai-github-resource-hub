@@ -30,6 +30,7 @@ export default function VideoStudio({publishedCatalog}:Props){
   const [busy,setBusy]=useState(false);
   const [audioBusy,setAudioBusy]=useState(false);
   const [voice,setVoice]=useState<VoiceOption>('freya');
+  const [modelFile,setModelFile]=useState<File|null>(null);
   const [musicLevel,setMusicLevel]=useState(.12);
   const [sound,setSound]=useState<AudioBuffer|null>(null);
   const [soundSignature,setSoundSignature]=useState('');
@@ -128,12 +129,12 @@ export default function VideoStudio({publishedCatalog}:Props){
     try{
       const output=await generateVideoSoundtrack(project,voice,musicLevel,(stage,percent)=>{
         setAudioStatus(stage);setAudioProgress(percent);
-      });
+      },modelFile);
       setSound(output);setSoundSignature(key);
       setStatus('Narration and original background music are ready. Preview with audio, then approve the video.');
     }catch(error){
       setAudioStatus('Audio generation failed: '+(error instanceof Error?error.message:String(error)));
-      setStatus('Shorten any overlong spoken subtitles or check the browser model download, then try again. No silent MP4 will be exported.');
+      setStatus('Narration could not be generated. The specific error is shown above. Try the local model option below if downloads are restricted. The app will not export an MP4 without its audio.');
     }finally{setAudioBusy(false);}
   };
   const approve=()=>{
@@ -231,13 +232,27 @@ export default function VideoStudio({publishedCatalog}:Props){
                 <input type="range" min={0} max={.3} step={.02} value={musicLevel} disabled={audioBusy} onChange={e=>changeMusic(Number(e.target.value))}/>
               </label>
             </div>
+            <div className="video-studio-model-file">
+              <label>Use a local speech model if the online download fails (optional)
+                <input type="file" accept=".litertlm" disabled={audioBusy||busy}
+                  onChange={event=>{
+                    const file=event.target.files?.[0]||null;
+                    setModelFile(file);setPlaying(false);setSound(null);setSoundSignature('');
+                    setAudioStatus(file?'Local model selected: '+file.name+' ('+(file.size/1048576).toFixed(1)+' MiB). Click Generate again.':'');
+                  }}/>
+              </label>
+              <small>Prefer the automatic download above. If your network blocks the model, get the official <a href="https://huggingface.co/litert-community/phonon-31m-en/blob/main/phonon_int8.litertlm" rel="noopener noreferrer" target="_blank">Phonon 31M model from Hugging Face</a>, then select the .litertlm file here. The model is used in your browser and is not uploaded to this website.</small>
+              {modelFile&&<button type="button" className="btn subtle small" disabled={audioBusy} onClick={()=>{
+                setModelFile(null);setSound(null);setSoundSignature('');setAudioStatus('Using automatic model download on the next attempt.');
+              }}>Use automatic download instead</button>}
+            </div>
             <button className="btn primary" disabled={audioBusy||busy} onClick={()=>void makeAudio()}>
               {audioBusy?<LoaderCircle size={16} className="spin"/>:<Film size={16}/>}
               {audioBusy?'Generating '+Math.round(audioProgress)+'%':audioReady?'Regenerate narration + music':'Generate narration + music'}
             </button>
             {audioBusy&&<progress max={100} value={audioProgress} aria-label="Generating narration"/>}
             {audioStatus&&<p role="status">{audioStatus}</p>}
-            <small>First use downloads the free MediaPipe Phonon model (approximately 87 MB). Audio is generated on your device; no cloud narration fees. A slow device may take longer.</small>
+            <small>First use needs an approximately 87 MB open-source Phonon model. This version serves the MediaPipe runtime from your own site and tries a secure Cloudflare model download before attempting Hugging Face directly. Errors identify the failed download. Once loaded, speech synthesis and audio mixing run locally; there are no paid voice credits.</small>
           </div>
           <div className="video-studio-approval">
             <strong>{isApproved?<><CheckCircle2 size={18}/> Approved for export</>:<>4. Preview and approve with audio</>}</strong>
