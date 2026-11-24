@@ -167,7 +167,7 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
     const previous = results.get(resourceKey(item.url));
     return !previous || !!previous.error;
   }).length;
-  const lastBatchErrors = lastBatchUrls.map(url => results.get(resourceKey(url)) || {url}).filter(item => !!item.error);
+  const lastBatchErrors = lastBatchUrls.map(url => results.get(resourceKey(url))).filter((item): item is Result => !!item?.error);
   const errorBreakdown = useMemo(() => {
     const counts = new Map<string, number>();
     results.forEach((entry, key) => {
