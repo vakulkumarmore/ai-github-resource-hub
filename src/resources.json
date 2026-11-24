@@ -36468,5 +36468,41 @@
     "updatedAt": "2026-11-24T18:58:07Z",
     "homepage": "https://diagramdesign.dev",
     "license": "MIT"
+  },
+  {
+    "id": "cporter202-agentic-ai-apis",
+    "name": "agentic-ai-apis",
+    "url": "https://github.com/cporter202/agentic-ai-apis",
+    "category": "MCP Servers",
+    "description": "The ultimate collection of APIs for building autonomous AI agents — 2,036 production-ready APIs across Agents, AI Models, and MCP Servers. Stop wasting weeks building infrastructure. Plug these in and ship your agent today.",
+    "oneLiner": "The ultimate collection of APIs for building autonomous AI agents — 2,036 production-ready APIs across Agents, AI Models, and MCP Servers.",
+    "hashtags": [
+      "#mcp",
+      "#AIIntegration",
+      "#agenticai",
+      "#aiagents",
+      "#aitools",
+      "#apicollection"
+    ],
+    "tags": [
+      "agentic-ai",
+      "ai-agents",
+      "ai-tools",
+      "api-collection",
+      "api-directory",
+      "apis",
+      "automation",
+      "curated-list",
+      "developer-tools",
+      "llm",
+      "mcp",
+      "mcp-servers"
+    ],
+    "type": "repository",
+    "language": "JavaScript",
+    "stars": 844,
+    "forks": 224,
+    "updatedAt": "2026-11-24T02:14:08Z",
+    "archived": false
   }
 ]
