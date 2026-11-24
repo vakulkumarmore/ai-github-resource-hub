@@ -36624,5 +36624,42 @@
     "forks": 101,
     "updatedAt": "2026-11-21T08:57:38Z",
     "license": "MIT"
+  },
+  {
+    "id": "aientech-dossier",
+    "name": "dossier",
+    "url": "https://github.com/AienTech/dossier",
+    "category": "LLMs & Models",
+    "description": "A self-hosted job search and resume builder app that writes tailored resumes and cover letters from your profile.",
+    "oneLiner": "A self-hosted job search and resume builder app that writes tailored resumes and cover letters from your profile.",
+    "hashtags": [
+      "#llm",
+      "#GenerativeAI",
+      "#caprover",
+      "#coverletter",
+      "#docker",
+      "#jobapplicationtracker"
+    ],
+    "tags": [
+      "caprover",
+      "cover-letter",
+      "docker",
+      "job-application-tracker",
+      "job-search",
+      "llm",
+      "local-llm",
+      "nextjs",
+      "ollama",
+      "postgresql",
+      "resume",
+      "self-hosted"
+    ],
+    "type": "repository",
+    "language": "TypeScript",
+    "stars": 5431,
+    "forks": 1132,
+    "updatedAt": "2026-11-23T09:08:26Z",
+    "homepage": "https://dossier.aien.me",
+    "license": "AGPL-3.0"
   }
 ]
