@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {makeIndividualVideo,makeRoundupVideo,videoSignature,videoSrt,VIDEO_SECONDS,VIDEO_FPS,VIDEO_WIDTH,VIDEO_HEIGHT} from '../src/videoStudioEngine.ts';
+import {autoPickRoundup,makeIndividualVideo,makeRoundupVideo,videoSignature,videoSrt,VIDEO_SECONDS,VIDEO_FPS,VIDEO_WIDTH,VIDEO_HEIGHT} from '../src/videoStudioEngine.ts';
 
 const r=(name,url)=>({id:name,name,url,category:'AI Agents',description:name+' description from repository',oneLiner:name+' helps automate common development tasks.',tags:[],language:'TypeScript',stars:1200,type:'repository'});
 const a=r('Project One','https://github.com/example/one');
@@ -51,4 +51,13 @@ test('encoding defaults are predictable',()=>{
   assert.equal(VIDEO_FPS,24);
   assert.equal(VIDEO_WIDTH,540);
   assert.equal(VIDEO_HEIGHT,960);
+});
+
+test('daily roundup picks three distinct published repos and stays deterministic for a date',()=>{
+  const entries=[{...a,updatedAt:'2026-11-23T12:00:00Z'},{...b,updatedAt:'2026-11-22T12:00:00Z'},{...c,updatedAt:'2026-11-21T12:00:00Z'}];
+  const picked=autoPickRoundup(entries,'2026-11-24');
+  assert.ok(picked);
+  assert.equal(new Set(picked.map(r=>r.url)).size,3);
+  assert.deepEqual(autoPickRoundup(entries,'2026-11-24')?.map(r=>r.url),picked.map(r=>r.url));
+  assert.equal(autoPickRoundup(entries.slice(0,2),'2026-11-24'),null);
 });
