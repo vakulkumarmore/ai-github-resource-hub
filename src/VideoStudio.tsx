@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, CheckCircle2, Download, Film, LoaderCircle, Pause, Play, Search, ShieldCheck, Sparkles, Video, X } from 'lucide-react';
 import { resourceKey, type Resource } from './Importer';
 import { autoPickRoundup, drawVideoFrame, makeIndividualVideo, makeRoundupVideo, renderVideoMp4, videoSignature, videoSrt, VIDEO_HEIGHT, VIDEO_SECONDS, VIDEO_WIDTH, type VideoProject, type VideoMode } from './videoStudioEngine';
+import { generateVideoSoundtrack, type VoiceOption } from './videoStudioAudio';
 import './videoStudio.css';
 
 type Props={publishedCatalog:Resource[]};
@@ -27,6 +28,15 @@ export default function VideoStudio({publishedCatalog}:Props){
   const [position,setPosition]=useState(0);
   const [playing,setPlaying]=useState(false);
   const [busy,setBusy]=useState(false);
+  const [audioBusy,setAudioBusy]=useState(false);
+  const [voice,setVoice]=useState<VoiceOption>('freya');
+  const [musicLevel,setMusicLevel]=useState(.12);
+  const [sound,setSound]=useState<AudioBuffer|null>(null);
+  const [soundSignature,setSoundSignature]=useState('');
+  const [audioProgress,setAudioProgress]=useState(0);
+  const [audioStatus,setAudioStatus]=useState('');
+  const audioContextRef=useRef<AudioContext|null>(null);
+  const playbackRef=useRef<AudioBufferSourceNode|null>(null);
   const [progress,setProgress]=useState(0);
   const [status,setStatus]=useState('');
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
@@ -38,8 +48,9 @@ export default function VideoStudio({publishedCatalog}:Props){
   }).slice(0,70),[eligible,query]);
   const required=mode==='individual'?1:3;
   const currentResources=useMemo(()=>selected.map(url=>eligible.find(r=>resourceKey(r.url)===url)).filter((r):r is Resource=>!!r),[selected,eligible]);
-  const signature=project?videoSignature(project):'';
-  const isApproved=!!project&&approved[project.id]===signature;
+  const signature=project?videoSignature(project)+'|voice='+voice+'|music='+musicLevel:'';
+  const audioReady=!!project&&!!sound&&soundSignature===signature;
+  const isApproved=audioReady&&approved[project!.id]===signature;
 
   useEffect(()=>{
     const c=canvasRef.current;
@@ -49,6 +60,15 @@ export default function VideoStudio({publishedCatalog}:Props){
   useEffect(()=>{
     if(!playing||!project)return;
     let handle=0;
+    if(audioReady&&sound){
+      const ctx=audioContextRef.current||new AudioContext();
+      audioContextRef.current=ctx;
+      const source=ctx.createBufferSource();
+      source.buffer=sound;source.connect(ctx.destination);
+      source.start(0,Math.min(current.current,VIDEO_SECONDS-.01));
+      playbackRef.current=source;
+      void ctx.resume();
+    }
     playbackStart.current=performance.now()-current.current*1000;
     const frame=(now:number)=>{
       const t=Math.min(VIDEO_SECONDS,(now-playbackStart.current)/1000);
@@ -58,38 +78,68 @@ export default function VideoStudio({publishedCatalog}:Props){
       handle=requestAnimationFrame(frame);
     };
     handle=requestAnimationFrame(frame);
-    return ()=>cancelAnimationFrame(handle);
-  },[playing,project]);
+    return ()=>{
+      cancelAnimationFrame(handle);
+      try{playbackRef.current?.stop();}catch{/* already stopped */}
+      playbackRef.current?.disconnect();
+      playbackRef.current=null;
+    };
+  },[playing,project,audioReady,sound]);
 
   const toggle=(url:string)=>{
     const key=resourceKey(url);
     setSelected(prev=>prev.includes(key)?prev.filter(k=>k!==key):prev.length>=required?[...prev.slice(1),key]:[...prev,key]);
-    setProject(null);setStatus('');setPlaying(false);current.current=0;setPosition(0);
+    setProject(null);setSound(null);setSoundSignature('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
   };
   const changeMode=(next:VideoMode)=>{
-    setMode(next);setSelected([]);setProject(null);setQuery('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
+    setMode(next);setSelected([]);setProject(null);setSound(null);setSoundSignature('');setQuery('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
   };
   const pickToday=()=>{
     const picked=autoPickRoundup(eligible,new Date().toISOString().slice(0,10));
     if(!picked){setStatus('At least three published repositories are required for a roundup.');return;}
     setSelected(picked.map(r=>resourceKey(r.url)));
-    setProject(null);setPlaying(false);current.current=0;setPosition(0);
+    setProject(null);setSound(null);setSoundSignature('');setPlaying(false);current.current=0;setPosition(0);
     setStatus('Selected three recently active published repositories for today. Review the selection before generating and approving the video.');
   };
   const create=()=>{
     if(currentResources.length!==required)return;
     const next=mode==='individual'?makeIndividualVideo(currentResources[0]):makeRoundupVideo(currentResources as [Resource,Resource,Resource]);
-    setProject(next);setPosition(0);current.current=0;setPlaying(false);
-    setStatus('Preview the full 15 seconds, edit captions if needed, and approve the final script before MP4 export.');
+    setProject(next);setSound(null);setSoundSignature('');setPosition(0);current.current=0;setPlaying(false);
+    setStatus('Review the full details and complete GitHub links, edit spoken subtitles, then generate narrated audio and music before approval.');
   };
-  const editScene=(index:number,field:'heading'|'subtitle'|'detail',value:string)=>{
+  const editScene=(index:number,field:'heading'|'subtitle'|'detail'|'extra',value:string)=>{
     setProject(old=>!old?null:{...old,scenes:old.scenes.map((s,i)=>i===index?{...s,[field]:value}:s)});
-    setPlaying(false);setStatus('Script edited. Review and approve this version again before exporting.');
+    setPlaying(false);setSound(null);setSoundSignature('');
+    setStatus('Script edited. Regenerate narration and music, then approve again before exporting.');
+  };
+  const changeVoice=(next:VoiceOption)=>{
+    setPlaying(false);setVoice(next);setSound(null);setSoundSignature('');
+    setStatus('Voice changed. Regenerate audio and approve this version again.');
+  };
+  const changeMusic=(next:number)=>{
+    setPlaying(false);setMusicLevel(next);setSound(null);setSoundSignature('');
+    setStatus('Music level changed. Regenerate audio and approve this version again.');
+  };
+  const makeAudio=async()=>{
+    if(!project||audioBusy||busy)return;
+    setAudioBusy(true);setPlaying(false);setSound(null);setSoundSignature('');
+    setAudioStatus('Preparing speech model…');setAudioProgress(0);
+    const key=signature;
+    try{
+      const output=await generateVideoSoundtrack(project,voice,musicLevel,(stage,percent)=>{
+        setAudioStatus(stage);setAudioProgress(percent);
+      });
+      setSound(output);setSoundSignature(key);
+      setStatus('Narration and original background music are ready. Preview with audio, then approve the video.');
+    }catch(error){
+      setAudioStatus('Audio generation failed: '+(error instanceof Error?error.message:String(error)));
+      setStatus('Shorten any overlong spoken subtitles or check the browser model download, then try again. No silent MP4 will be exported.');
+    }finally{setAudioBusy(false);}
   };
   const approve=()=>{
-    if(!project||busy)return;
-    if(!window.confirm('Approve this exact 15-second video script and its on-screen subtitles for export? No video will be posted automatically.'))return;
-    const next={...approved,[project.id]:videoSignature(project)};
+    if(!project||busy||!audioReady)return;
+    if(!window.confirm('Approve these exact 15-second scenes, spoken narration, original music level, and full GitHub links for export? No video will be posted automatically.'))return;
+    const next={...approved,[project.id]:signature};
     setApproved(next);
     try{localStorage.setItem(APPROVALS_KEY,JSON.stringify(next));}catch{/* approval remains in this tab */}
     setStatus('Approved for export on this browser. Nothing has been shared or published.');
@@ -98,9 +148,10 @@ export default function VideoStudio({publishedCatalog}:Props){
     if(!project||!isApproved||busy)return;
     setBusy(true);setProgress(0);setPlaying(false);setStatus('Encoding video locally in your browser. This can take a minute...');
     try{
-      const blob=await renderVideoMp4(project,setProgress);
+      if(!sound)throw new Error('Narration and background music must be generated before export.');
+      const blob=await renderVideoMp4(project,sound,setProgress);
       download(blob,'ai-github-resource-hub-'+safeName(project.title)+'.mp4');
-      setStatus('MP4 exported successfully with burned-in subtitles. Review the downloaded video before sharing.');
+      setStatus('15-second MP4 exported with spoken narration, original background music, subtitles, and complete GitHub links. Review the downloaded video before sharing.');
     }catch(error){
       setStatus('MP4 export failed: '+(error instanceof Error?error.message:String(error))+'. No partial export was downloaded.');
     }finally{setBusy(false);}
@@ -118,11 +169,11 @@ export default function VideoStudio({publishedCatalog}:Props){
   return <section className="workspace-panel video-studio">
     <div className="video-studio-header"><div><p className="video-studio-kicker"><Film size={16}/> ADMIN VIDEO STUDIO</p>
       <h2>Create 15-second repository videos</h2>
-      <p>Original motion graphics from your approved, published GitHub catalog. Videos are rendered locally, with readable subtitles burned into the MP4.</p></div>
+      <p>15-second repository videos with expanded descriptions, full GitHub URLs, AI narration and original background music, mixed directly into the MP4.</p></div>
       <span className="video-studio-label"><ShieldCheck size={15}/> Review required</span>
     </div>
     <div className="video-studio-note">
-      <Sparkles size={18}/><span>Only <strong>published repository entries</strong> can be featured. No paid AI, cloud rendering, external images or automatic social posting. Videos are <strong>silent and captioned</strong>, with optional downloadable SRT.</span>
+      <Sparkles size={18}/><span>Only <strong>published GitHub repositories</strong> can be featured. Free local AI narration downloads a speech model on first use. Music is generated from original synthesizer sounds. MP4s include audio, full URLs and timed captions. No automatic social posting.</span>
     </div>
     <div className="video-studio-modes" role="group" aria-label="Video format">
       <button type="button" className={mode==='individual'?'active':''} onClick={()=>changeMode('individual')} aria-pressed={mode==='individual'}><Video size={17}/> Individual spotlight <span>1 repository · 15s</span></button>
@@ -152,17 +203,46 @@ export default function VideoStudio({publishedCatalog}:Props){
         </button>
 
         {project&&<div className="video-studio-script">
-          <div className="video-studio-section-head"><h3>2. Edit the timed scenes and subtitles</h3><span>15 seconds total</span></div>
+          <div className="video-studio-section-head"><h3>2. Review details and spoken subtitles</h3><span>15 seconds total</span></div>
+          <div className="video-studio-links"><strong>Complete GitHub links shown in video</strong>
+            {project.selectedUrls.map(url=><a href={url} target="_blank" rel="noopener noreferrer" key={url}>{url}</a>)}
+          </div>
           {project.scenes.map((scene,i)=><div className="video-scene-editor" key={scene.id}>
             <div className="video-scene-head"><strong>{scene.eyebrow}</strong><span>{scene.start}–{scene.end}s</span></div>
             <label>On-screen headline<input maxLength={110} value={scene.heading} onChange={e=>editScene(i,'heading',e.target.value)}/></label>
-            <label>Subtitle / caption<textarea rows={2} maxLength={220} value={scene.subtitle} onChange={e=>editScene(i,'subtitle',e.target.value)}/></label>
+            <label>Spoken narration / synchronized subtitle<textarea rows={2} maxLength={160} value={scene.subtitle} onChange={e=>editScene(i,'subtitle',e.target.value)}/></label>
+            <small>Keep spoken words brief enough for the {scene.end-scene.start}-second scene. The exporter checks real voice duration.</small>
             <label>Supporting label<input maxLength={110} value={scene.detail} onChange={e=>editScene(i,'detail',e.target.value)}/></label>
+            <label>Extended repository details shown in the video<textarea rows={3} maxLength={420} value={scene.extra||''} onChange={e=>editScene(i,'extra',e.target.value)}/></label>
           </div>)}
+          <div className="video-studio-audio">
+            <div className="video-studio-section-head"><h3>3. Generate narration + background music</h3><span>Runs locally in your browser</span></div>
+            <div className="video-studio-audio-controls">
+              <label>English narration voice
+                <select value={voice} disabled={audioBusy} onChange={e=>changeVoice(e.target.value as VoiceOption)}>
+                  <option value="freya">Freya · default</option>
+                  <option value="claire">Claire</option>
+                  <option value="sofia">Sofia</option>
+                  <option value="lukas">Lukas</option>
+                  <option value="lucas">Lucas</option>
+                </select>
+              </label>
+              <label>Original background music level: {Math.round(musicLevel*100)}%
+                <input type="range" min={0} max={.3} step={.02} value={musicLevel} disabled={audioBusy} onChange={e=>changeMusic(Number(e.target.value))}/>
+              </label>
+            </div>
+            <button className="btn primary" disabled={audioBusy||busy} onClick={()=>void makeAudio()}>
+              {audioBusy?<LoaderCircle size={16} className="spin"/>:<Film size={16}/>}
+              {audioBusy?'Generating '+Math.round(audioProgress)+'%':audioReady?'Regenerate narration + music':'Generate narration + music'}
+            </button>
+            {audioBusy&&<progress max={100} value={audioProgress} aria-label="Generating narration"/>}
+            {audioStatus&&<p role="status">{audioStatus}</p>}
+            <small>First use downloads the free MediaPipe Phonon model (approximately 87 MB). Audio is generated on your device; no cloud narration fees. A slow device may take longer.</small>
+          </div>
           <div className="video-studio-approval">
-            <strong>{isApproved?<><CheckCircle2 size={18}/> Approved for export</>:<>3. Review and approve before export</>}</strong>
-            <p>Review the preview and verify each claim. Editing any scene automatically invalidates its previous approval. Approval is stored on this browser only.</p>
-            <button type="button" className="btn primary" disabled={isApproved||busy} onClick={approve}>
+            <strong>{isApproved?<><CheckCircle2 size={18}/> Approved for export</>:<>4. Preview and approve with audio</>}</strong>
+            <p>Verify that narration, subtitles, detailed descriptions and each full GitHub URL are accurate. Any script, voice or music edit requires generating audio and approving again. Approval stays in this browser.</p>
+            <button type="button" className="btn primary" disabled={!audioReady||isApproved||busy||audioBusy} onClick={approve}>
               <ShieldCheck size={17}/>{isApproved?'Approved':'Approve this video'}
             </button>
           </div>
@@ -173,21 +253,22 @@ export default function VideoStudio({publishedCatalog}:Props){
         <div className="video-studio-section-head"><h3>Live preview</h3><span>9:16 vertical · 15s</span></div>
         {project?<><canvas ref={canvasRef} width={VIDEO_WIDTH} height={VIDEO_HEIGHT} className="video-studio-canvas" role="img" aria-label={'Video preview for '+project.title+'. Captions and timed headlines may be edited on the left.'}/>
           <div className="video-studio-playback">
-            <button className="btn subtle small" onClick={play} aria-label={playing?'Pause preview':'Play preview'}>{playing?<Pause size={17}/>:<Play size={17}/>} {playing?'Pause':'Play'}</button>
+            <button className="btn subtle small" disabled={!audioReady} onClick={play} aria-label={playing?'Pause preview':'Play preview'}>{playing?<Pause size={17}/>:<Play size={17}/>} {playing?'Pause':'Play'}</button>
             <input type="range" min={0} max={VIDEO_SECONDS} step={0.05} value={position} aria-label="Scrub 15-second video" onChange={e=>{setPlaying(false);const n=Number(e.target.value);current.current=n;setPosition(n);}}/>
             <span>{position.toFixed(1)} / {VIDEO_SECONDS}s</span>
           </div>
+          {!audioReady&&<p className="video-studio-audio-hint">Generate narration + background music to hear the preview and enable MP4 export.</p>}
           <div className="video-studio-export">
-            <button className="btn primary" disabled={!isApproved||busy} onClick={()=>void exportMp4()}>
+            <button className="btn primary" disabled={!isApproved||!audioReady||busy||audioBusy} onClick={()=>void exportMp4()}>
               {busy?<LoaderCircle size={16} className="spin"/>:<Download size={16}/>}
               {busy?'Rendering '+progress+'%':'Export 15s MP4'}
             </button>
-            <button className="btn subtle" disabled={!isApproved||busy} onClick={exportSrt}><Download size={15}/> Export .srt</button>
+            <button className="btn subtle" disabled={!isApproved||busy||audioBusy} onClick={exportSrt}><Download size={15}/> Export .srt</button>
           </div>
           {busy&&<progress max={100} value={progress} aria-label="MP4 rendering progress"/>}
           </>:<div className="video-studio-empty"><Film size={40}/><strong>No video created yet</strong><p>Choose {required} published {required===1?'repository':'repositories'} and click Create video script to preview and edit your video.</p></div>}
         {status&&<p className="video-studio-status" role="status">{status}</p>}
-        <p className="video-studio-disclaimer">MP4 export uses your browser's WebCodecs H.264 support and may take time on slower computers. There is no voice track or background music in this initial version.</p>
+        <p className="video-studio-disclaimer">Your final MP4 contains actual AI voice narration, background music, burned-in subtitles, expanded descriptions and complete GitHub URLs. Fifteen seconds cannot fit an entire README, so spoken lines are brief. MP4/AAC encoding needs a current Chromium-based browser.</p>
       </div>
     </div>
   </section>;
