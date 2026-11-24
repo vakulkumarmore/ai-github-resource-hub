@@ -33,5 +33,7 @@ jobs:
           python-version: '3.12'
       - name: Check daily health and archived-status handling
         run: python -m unittest discover -s tests -p 'test_repo_health.py' -v
+      - name: Check daily repository discovery and duplicate filtering
+        run: python -m unittest discover -s tests -p 'test_daily_discovery.py' -v
       - name: Build TypeScript and Vite
         run: npm run build
