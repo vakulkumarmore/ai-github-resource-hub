@@ -26,5 +26,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Check Worker syntax
         run: node --check worker/index.js
+      - name: Test GitHub metadata access fallback
+        run: node --test tests/worker-analyze-public-fallback.test.mjs
       - name: Build TypeScript and Vite
         run: npm run build
