@@ -70,6 +70,18 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
        };
      }catch{return {url:githubUrl,error:'Unable to reach GitHub API'};}
    }));
+   // Shared authentication/permission failures are NOT failed repositories.
+   // Do not reply with a successful 200 and ten per-repository errors:
+   // Analyze All would otherwise continue through the entire catalog.
+   if(results.length && results.every(item => item.error === 'GitHub HTTP 401')){
+     return json({error:'GitHub rejected the saved OAuth token (HTTP 401). Reconnect the GitHub owner account from Admin before retrying the analysis.',reconnect:true},401);
+   }
+   if(results.length && results.every(item => item.error === 'GitHub rate limit or access restriction')){
+     return json({error:'GitHub denied all metadata lookups in this batch (HTTP 403). Check API limits and access permissions, or reconnect the owner account before retrying.',reconnect:true},403);
+   }
+   if(results.length && results.every(item => item.error === 'Unable to reach GitHub API')){
+     return json({error:'GitHub metadata API could not be reached for this batch. No repository was marked invalid. Check connectivity and retry later.'},503);
+   }
    return json({results});
  }
  if(path==='/api/catalog'&&req.method==='GET'){const r=await fetch(`https://api.github.com/repos/${encodeURIComponent(env.OWNER_LOGIN)}/${encodeURIComponent(env.REPO_NAME)}/contents/src/resources.json`,{headers:{Accept:'application/vnd.github.raw+json','User-Agent':'ai-github-resource-hub'},cf:{cacheTtl:60}});if(!r.ok)return json({error:'Unable to load published catalog'},r.status);return new Response(await r.text(),{headers:{'content-type':'application/json','cache-control':'public,max-age=60'}});}
