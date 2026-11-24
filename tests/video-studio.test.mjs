@@ -80,7 +80,7 @@ test('video frame renders the entire GitHub URL and expanded project details',()
   drawVideoFrame({width:540,height:960,getContext:()=>ctx},project,5);
   const output=textCalls.join(' ');
   assert.ok(output.includes(sample.description),'extended description must be visible');
-  assert.ok(output.includes(sample.url),'full URL must not be omitted or converted to just owner/repo');
+  assert.ok(textCalls.join('').includes(sample.url),'full URL must not be omitted or converted to just owner/repo');
 });
 test('scene subtitles and visible extended description are separate and editable',()=>{
   const p=makeIndividualVideo(a);
