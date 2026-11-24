@@ -57,7 +57,7 @@ class RefreshTests(unittest.TestCase):
                 self.assertEqual(path, '/graphql')
                 return 200, {'data': {
                     'r0': {'stargazerCount':1000,'forkCount':75,'pushedAt':old_date,
-                           'updatedAt':'2026-09-03T00:00:00Z', 'isArchived':False,
+                           'updatedAt':'2026-09-03T00:00:00Z', 'isArchived':True,
                            'isDisabled':False,'primaryLanguage':{'name':'Python'},
                            'licenseInfo':{'spdxId':'MIT'},'issues':{'totalCount':6},
                            'pullRequests':{'totalCount':1}},
@@ -74,9 +74,11 @@ class RefreshTests(unittest.TestCase):
                 self.assertEqual(after[0].get(field), original[0].get(field))
             self.assertEqual(after[0]['stars'], 1000)
             self.assertEqual(after[0]['updatedAt'], old_date)
+            self.assertIs(after[0]['archived'], True, 'Archived GitHub status should persist in published resources')
             self.assertEqual(after[1], original[1])
             report = json.loads(health.read_text())
             self.assertIn('stale_365d', report['entries'][0]['flags'])
+            self.assertIn('archived', report['entries'][0]['flags'])
             self.assertEqual(report['entries'][1]['status'], 'unavailable')
             self.assertEqual(report['entries'][2]['status'], 'profile_or_unsupported')
             self.assertEqual(report['summary']['total'], 3)
