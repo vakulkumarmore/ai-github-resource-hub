@@ -64,6 +64,8 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
          updated_at:data.updated_at||null,
          homepage:typeof data.homepage==='string'?data.homepage.slice(0,300):null,
          license:data.license?{spdx_id:data.license.spdx_id||null}:null,
+         archived:!!data.archived,
+         disabled:!!data.disabled,
          type:parts.length===1?'profile':'repository'
        };
      }catch{return {url:githubUrl,error:'Unable to reach GitHub API'};}
