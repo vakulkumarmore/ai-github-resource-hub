@@ -141,7 +141,9 @@ const srtStamp=(time:number)=>{
   return '00:00:'+String(Math.floor(ms/1000)).padStart(2,'0')+','+String(ms%1000).padStart(3,'0');
 };
 export function videoSrt(project:VideoProject):string{
-  return project.scenes.map((s,i)=>String(i+1)+'\n'+srtStamp(s.start)+' --> '+srtStamp(s.end)+'\n'+s.subtitle.replace(/[\r\n]+/g,' ')+'\n').join('\n');
+  // An instrumental bumper has no speech, so it should not produce an
+  // empty subtitle cue in the downloadable SRT.
+  return project.scenes.filter(s=>s.subtitle.trim()).map((s,i)=>String(i+1)+'\n'+srtStamp(s.start)+' --> '+srtStamp(s.end)+'\n'+s.subtitle.replace(/[\r\n]+/g,' ')+'\n').join('\n');
 }
 export async function renderVideoMp4(project:VideoProject,audio:AudioBuffer,onProgress:(percent:number)=>void):Promise<Blob>{
   if(typeof window==='undefined'||!('VideoEncoder' in window)){
