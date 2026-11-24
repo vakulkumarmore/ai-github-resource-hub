@@ -30,7 +30,13 @@ async function lookupBatch(batch: Resource[], signal: AbortSignal): Promise<Resu
     headers: {'content-type': 'application/json'},
     body: JSON.stringify({urls: batch.map(item => item.url)}),
   });
-  const body = await apiJson<{results: GitHubDetails[]; publicFallbackUsed?: boolean}>(response, '/api/analyze');
+  // HTTP 424 means the entire batch failed. Newer Workers provide per-repo
+  // errors, so keep the exact URLs instead of losing them in a generic exception.
+  type AnalysisPayload = {results: GitHubDetails[]; publicFallbackUsed?: boolean};
+  const failedBatch = response.status === 424 ? await response.clone().json().catch(() => null) : null;
+  const body: AnalysisPayload = failedBatch && Array.isArray(failedBatch.results)
+    ? failedBatch as AnalysisPayload
+    : await apiJson<AnalysisPayload>(response, '/api/analyze');
   if (!Array.isArray(body.results)) throw new Error('The analysis service did not return a list of results.');
   const returned = new Map<string, GitHubDetails>(body.results.map((r: GitHubDetails) => [resourceKey(r.url), r]));
   return batch.map(resource => {
@@ -58,6 +64,7 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
   const [targetCount, setTargetCount] = useState(0);
   const [batchNumber, setBatchNumber] = useState(0);
   const [stoppedForLimit, setStoppedForLimit] = useState(false);
+  const [lastBatchUrls, setLastBatchUrls] = useState<string[]>([]);
 
   useEffect(() => () => { mounted.current = false; controller.current?.abort(); }, []);
   useEffect(() => {
@@ -86,7 +93,7 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
   const resetReview = () => {
     if (controller.current || !window.confirm('Clear completed analysis suggestions and start over? Your resource catalog and unpublished edits will not change.')) return;
     updateResults(new Map()); setExcluded(new Set()); setCompleteCount(0); setTargetCount(0); setBatchNumber(0);
-    setState('idle'); setMessage('Analysis suggestions cleared. You can run a fresh analysis.'); setStoppedForLimit(false);
+    setState('idle'); setMessage('Analysis suggestions cleared. You can run a fresh analysis.'); setStoppedForLimit(false); setLastBatchUrls([]);
   };
   const run = async (retryFailed = false) => {
     if (controller.current) return;
@@ -104,6 +111,7 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
       for (let offset = 0; offset < work.length; offset += batchSize) {
         if (abort.signal.aborted) break;
         const batch = work.slice(offset, offset + batchSize);
+        if (mounted.current) setLastBatchUrls(batch.map(item => item.url));
         const returned = await lookupBatch(batch, abort.signal);
         const next = new Map(resultsRef.current);
         returned.forEach(item => next.set(resourceKey(item.url), item));
@@ -151,6 +159,15 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
   const success = [...results.entries()].filter(([k, r]) => keys.has(k) && !!r.suggestion).length;
   const failures = [...results.entries()].filter(([k, r]) => keys.has(k) && !!r.error).length;
   const hasAnalyses = !!success || !!failures;
+  const nextBatchPreview = useMemo(() => candidates.filter(item => {
+    const previous = results.get(resourceKey(item.url));
+    return !previous || !!previous.error;
+  }).slice(0, batchSize), [candidates, results, batchSize]);
+  const previousChecks = candidates.length - candidates.filter(item => {
+    const previous = results.get(resourceKey(item.url));
+    return !previous || !!previous.error;
+  }).length;
+  const lastBatchErrors = lastBatchUrls.map(url => results.get(resourceKey(url))).filter((item): item is Result => !!item?.error);
   const errorBreakdown = useMemo(() => {
     const counts = new Map<string, number>();
     results.forEach((entry, key) => {
@@ -185,7 +202,7 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
   };
 
   return <div className="workspace-panel enrichment-panel">
-    <div className="panel-heading"><span className="mini-icon"><Sparkles size={22}/></span><div><h2>Analyze existing resources</h2><p>Enrich your current catalog in small GitHub API batches. Nothing changes publicly until you review, apply to draft, and publish.</p></div></div>
+    <div className="panel-heading"><span className="mini-icon"><Sparkles size={22}/></span><div><h2>Analyze existing resources</h2><p>Checks the <strong>current Admin draft</strong>, which may differ from your published catalog. Successful results stored in this browser are skipped for up to 24 hours. Nothing changes publicly until you review, apply to draft, and publish.</p></div></div>
     <div className="enrich-stats">
       <div><strong>{catalog.length}</strong><span>In your draft</span></div><div><strong>{success}</strong><span>Analyzed</span></div>
       <div><strong>{changed.length}</strong><span>Suggested updates</span></div><div><strong>{failures}</strong><span>Errors</span></div>
@@ -206,6 +223,11 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
         <label className="enrich-warning"><input type="checkbox" checked={options.replaceEditorial} onChange={e => setOptions(o => ({...o, replaceEditorial: e.target.checked}))}/> Also replace existing descriptions, categories, one-liners and hashtags (off by default)</label>
       </fieldset>
     </div>
+    <details className="enrich-errors" style={{marginBottom:12}}>
+      <summary><Search size={15}/> Next batch preview: {nextBatchPreview.length} URL(s) from your Admin draft · {previousChecks} previously completed skipped</summary>
+      <p>These are the exact links that <strong>Continue remaining</strong> will check next. To begin from the first draft entry, choose Start fresh analysis. The published catalog may have a different order or content.</p>
+      <ol>{nextBatchPreview.map(item => <li key={resourceKey(item.url)}><a href={item.url} target="_blank" rel="noopener noreferrer">{item.url}</a></li>)}</ol>
+    </details>
     <div className="action-row enrich-actions">
       <button className="btn primary" disabled={state === 'running' || !candidates.length} onClick={() => run(false)}>{state === 'running' ? <LoaderCircle className="spin" size={16}/> : state === 'paused' ? <Play size={16}/> : <Sparkles size={16}/>} {state === 'running' ? 'Analyzing…' : hasAnalyses ? 'Continue remaining' : `Analyze ${candidates.length} resources`}</button>
       {state === 'running' && <button className="btn subtle" onClick={stop}><PauseCircle size={16}/> Pause</button>}
@@ -215,6 +237,17 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
     </div>
     {targetCount > 0 && <div className="enrich-progress" aria-live="polite"><div className="enrich-progress-heading"><span>{state === 'running' ? 'Analyzing' : state === 'paused' ? 'Paused' : 'Batch finished'} · {completeCount} / {targetCount}</span><strong>{progress}%</strong></div><div className="enrich-track" role="progressbar" aria-valuemin={0} aria-valuemax={targetCount} aria-valuenow={completeCount}><span style={{width:`${progress}%`}}/></div><span>Batch {batchNumber} · {success} total succeeded · {failures} failed</span></div>}
     {message && <div className={`notice ${stoppedForLimit ? 'info-notice' : ''}`} role="status">{stoppedForLimit ? <AlertCircle size={16}/> : <CheckCircle2 size={16}/>} {message}</div>}
+    {stoppedForLimit && lastBatchUrls.length > 0 && <div className="notice info-notice" role="alert">
+      <AlertCircle size={18}/>
+      <div style={{flex:1}}>
+        <strong>Last attempted batch: {lastBatchUrls.length} URL(s)</strong>
+        <p>These links came from your Admin draft. Compare them with the published catalog or open each on GitHub. A failed API lookup is not proof a repository is unsafe or should be deleted.</p>
+        <ol>{lastBatchUrls.map(url => <li key={resourceKey(url)}><a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+          {results.get(resourceKey(url))?.error && <span> · {results.get(resourceKey(url))?.error}</span>}
+        </li>)}</ol>
+        {lastBatchErrors.length === 0 && <p>The API request itself failed before individual results were recorded; the error message above has more detail.</p>}
+      </div>
+    </div>}
     {(failures > 0 || needsReconnect) && <div className="notice info-notice" role="alert">
       <AlertCircle size={18}/>
       <div style={{flex:1}}>

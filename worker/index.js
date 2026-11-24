@@ -128,7 +128,7 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
      const reasons=[...new Set(results.map(item => item.error))].slice(0,3);
      return json({
        error:`All ${results.length} GitHub metadata lookups in this batch failed. Reasons: ${reasons.join('; ')}. Stop analysis and check your GitHub sign-in, Worker deployment and API permissions. No catalog data was changed.`,
-       batchFailed:true, reasons
+       batchFailed:true, reasons, results
      },424);
    }
    return json({results,publicFallbackUsed:results.some(item=>item.publicFallbackUsed===true)});
