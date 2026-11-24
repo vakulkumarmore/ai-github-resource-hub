@@ -6,11 +6,19 @@ import HealthReview from './HealthReview';
 import { apiJson } from './apiJson';
 import { cleanHashtag, githubDetailsToResource } from './resourceAnalysis';
 import './adminAuth.css';
+import './approvalWorkflow.css';
 
 type AdminTab = 'resources' | 'import' | 'analyze' | 'health' | 'publish';
 type ResourceView = 'new' | 'all' | 'edited' | 'published';
 type Props = { publishedCatalog: Resource[]; onSaved: (resources: Resource[]) => void; onBack: () => void };
 const pageSize = 30;
+const APPROVAL_CHECKS_KEY = 'hub-approval-checks-v27';
+const APPROVED_NEW_KEY = 'hub-approved-new-v27';
+type NewResourceCheck = { checkedAt: string; archived: boolean; type: 'repository' | 'profile' };
+function readSession<T>(key: string, fallback: T): T {
+  try { const stored = sessionStorage.getItem(key); return stored ? JSON.parse(stored) as T : fallback; }
+  catch { return fallback; }
+}
 
 function downloadJSON(items: Resource[]) {
   const blob = new Blob([JSON.stringify(items, null, 2) + '\n'], { type: 'application/json' });
@@ -36,6 +44,12 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   const [analyzingKey, setAnalyzingKey] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [restorable, setRestorable] = useState<Resource[] | null>(null);
+  // Approval state is never stored inside resources.json.
+  // After a new browser session, unpublished additions must be revalidated.
+  const [checks, setChecks] = useState<Record<string, NewResourceCheck>>(() => readSession(APPROVAL_CHECKS_KEY, {}));
+  const [approvedKeys, setApprovedKeys] = useState<string[]>(() => readSession(APPROVED_NEW_KEY, []));
+  const [checkErrors, setCheckErrors] = useState<Record<string, string>>({});
+  const [checkingNew, setCheckingNew] = useState(false);
 
   const verifyGitHubAccount = async () => {
     setCheckingAccount(true);
@@ -98,6 +112,16 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   // never confused with repositories that are already visible on the public site.
   const publishedByKey = useMemo(() => new Map(publishedCatalog.map(r => [resourceKey(r.url), r])), [publishedCatalog]);
   const newKeys = useMemo(() => new Set(draft.filter(r => !publishedByKey.has(resourceKey(r.url))).map(r => resourceKey(r.url))), [draft, publishedByKey]);
+  const approvedSet = useMemo(() => new Set(approvedKeys), [approvedKeys]);
+  const pendingKeys = useMemo(() => new Set([...newKeys].filter(k => !approvedSet.has(k))), [newKeys, approvedSet]);
+  const pendingCount = pendingKeys.size;
+  const checkedCount = [...pendingKeys].filter(k => Boolean(checks[k])).length;
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(APPROVAL_CHECKS_KEY, JSON.stringify(checks));
+      sessionStorage.setItem(APPROVED_NEW_KEY, JSON.stringify(approvedKeys));
+    } catch { /* keep in memory when storage is unavailable */ }
+  }, [checks, approvedKeys]);
   const editedKeys = useMemo(() => new Set(draft.filter(r => {
     const prior = publishedByKey.get(resourceKey(r.url));
     return prior && JSON.stringify(prior) !== JSON.stringify(r);
@@ -136,9 +160,12 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       return true;
     });
     if (!unique.length) { setMessage('All imported URLs are already in the draft.'); return; }
+    const incomingKeys = new Set(unique.map(r => resourceKey(r.url)));
+    setChecks(old => Object.fromEntries(Object.entries(old).filter(([k]) => !incomingKeys.has(k))));
+    setApprovedKeys(old => old.filter(k => !incomingKeys.has(k)));
     setDraft(prev => [...prev, ...unique]);
     setPage(1); setQuery(''); setSelected([]); setView('new'); setTab('resources');
-    setMessage(`${unique.length} new resources added to your private draft. Showing only unpublished additions. Save Changes is now available.`);
+    setMessage(`${unique.length} new resources staged. Step 2: Select them and click Check GitHub. Step 3: Approve checked entries, then publish.`);
   };
   const applyBulkEnrichment = (next: Resource[], changeCount: number) => {
     setDraft(next);
@@ -148,6 +175,70 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   const update = (url: string, patch: Partial<Resource>) => {
     setDraft(prev => prev.map(r => resourceKey(r.url) === resourceKey(url) ? { ...r, ...patch } : r));
   };
+  // Step 2: Validate selected pending GitHub links; failed checks remain pending.
+  const checkNewResources = async () => {
+    const targets = draft.filter(r => selected.includes(resourceKey(r.url)) && newKeys.has(resourceKey(r.url)));
+    if (!targets.length) { setMessage('Select newly imported resources to check.'); return; }
+    setCheckingNew(true); setMessage(`Checking ${targets.length} selected new links against GitHub...`);
+    const passed: Record<string, NewResourceCheck> = {};
+    const failed: Record<string, string> = {};
+    const metadata = new Map<string, Partial<Resource>>();
+    try {
+      for (let i = 0; i < targets.length; i += 10) {
+        const batch = targets.slice(i, i + 10);
+        try {
+          const response = await fetch('/api/analyze', {
+            method: 'POST', credentials: 'same-origin',
+            headers: {'content-type': 'application/json'},
+            body: JSON.stringify({urls: batch.map(r => r.url)}),
+          });
+          const result = await apiJson<{results?: Array<{
+            url?: string; error?: string; type?: 'repository' | 'profile'; archived?: boolean;
+            stargazers_count?: number; forks_count?: number; language?: string | null;
+            pushed_at?: string | null; updated_at?: string | null;
+            license?: {spdx_id?: string} | null; homepage?: string | null;
+          }>}>(response, '/api/analyze');
+          if (!Array.isArray(result.results)) throw new Error('GitHub returned no validation results.');
+          const returned = new Map(result.results.filter(x => x?.url).map(x => [resourceKey(x.url!), x]));
+          for (const item of batch) {
+            const k = resourceKey(item.url);
+            const info = returned.get(k);
+            if (!info || info.error || !['repository', 'profile'].includes(info.type || '')) {
+              failed[k] = info?.error || 'Not verified. The repository or profile may be unavailable or rate limited.';
+              continue;
+            }
+            passed[k] = {checkedAt: new Date().toISOString(), archived: !!info.archived, type: info.type!};
+            metadata.set(k, {
+              ...(typeof info.stargazers_count === 'number' ? {stars: info.stargazers_count} : {}),
+              ...(typeof info.forks_count === 'number' ? {forks: info.forks_count} : {}),
+              ...(info.language ? {language: info.language} : {}),
+              ...((info.pushed_at || info.updated_at) ? {updatedAt: (info.pushed_at || info.updated_at)!} : {}),
+              ...(info.license?.spdx_id ? {license: info.license.spdx_id} : {}),
+              ...(info.homepage ? {homepage: info.homepage} : {}),
+            });
+          }
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : 'GitHub validation failed';
+          batch.forEach(item => { failed[resourceKey(item.url)] = reason; });
+        }
+      }
+      setChecks(old => ({...old, ...passed}));
+      setCheckErrors(old => ({...old, ...failed}));
+      setDraft(old => old.map(item => ({...item, ...(metadata.get(resourceKey(item.url)) || {})})));
+      setMessage(`${Object.keys(passed).length} link(s) verified; ${Object.keys(failed).length} need attention. Review results, then approve the verified entries.`);
+    } finally { setCheckingNew(false); }
+  };
+  // Step 3: Owner approval is required before publishing new links.
+  const approveCheckedResources = () => {
+    const toApprove = selected.filter(k => pendingKeys.has(k) && Boolean(checks[k]));
+    if (!toApprove.length) { setMessage('Select checked, pending resources first.'); return; }
+    const archived = toApprove.filter(k => checks[k]?.archived);
+    if (archived.length && !window.confirm(`${archived.length} selected projects are archived. Approve them anyway?`)) return;
+    setApprovedKeys(old => [...new Set([...old, ...toApprove])]);
+    setSelected([]);
+    setMessage(`${toApprove.length} resource(s) approved. Publish after remaining pending links are approved or removed.`);
+  };
+
   const analyzeExisting = async (resource: Resource) => {
     if (!window.confirm(`Refresh GitHub details and replace the category, one-liner, tags and hashtags for ${resource.name}? You can edit the suggestions before publishing.`)) return;
     const key = resourceKey(resource.url);
@@ -179,6 +270,8 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     const keys = new Set(urls.map(resourceKey));
     setSnapshot(draft);
     setDraft(prev => prev.filter(r => !keys.has(resourceKey(r.url))));
+    setApprovedKeys(old => old.filter(k => !keys.has(k)));
+    setChecks(old => Object.fromEntries(Object.entries(old).filter(([k]) => !keys.has(k))));
     setSelected([]); setEditing(null);
     setMessage(`${urls.length} resource(s) removed from your draft. Nothing is public until you publish.`);
     return true;
@@ -189,6 +282,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   };
   const discard = () => {
     if (!window.confirm('Discard all unpublished additions, edits and deletions?')) return;
+    setApprovedKeys([]); setChecks({}); setCheckErrors({});
     setDraft(publishedCatalog); setSelected([]); setSnapshot(null); setEditing(null); setView('all'); setMessage('Draft reset to published catalog.');
     try { sessionStorage.removeItem('hub-admin-unsaved-draft'); } catch { /* ignore */ }
     setRestorable(null);
@@ -199,7 +293,12 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     setDraft(restorable); setRestorable(null); setTab('resources'); setView(containsNew ? 'new' : 'all'); setPage(1); setMessage('Previous draft recovered. Please review before publishing.');
   };
   const publish = async () => {
-    if (!dirty || busy) return;
+    if (!dirty || busy || checkingNew) return;
+    if (pendingCount) {
+      setTab('resources'); setView('new'); setPage(1);
+      setMessage(`${pendingCount} new resource(s) are not yet approved. Check and approve them, or remove them, before publishing.`);
+      return;
+    }
     if (!window.confirm(`Publish ${draft.length} resources to GitHub? This includes ${added} additions, ${updated} updates and ${removed} deletions.`)) return;
     setBusy(true); setMessage('Publishing your catalog to GitHub...');
     try {
@@ -222,6 +321,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       }
       const result = await apiJson<{error?: string;message?: string}>(response, '/api/catalog');
       onSaved(draft);
+      setApprovedKeys([]); setChecks({}); setCheckErrors({});
       setDraft(draft); setSnapshot(null); setSelected([]); setRestorable(null); setView('all'); setPage(1);
       try { sessionStorage.removeItem('hub-admin-unsaved-draft'); } catch { /* ignore */ }
       setMessage(result.message || 'Published to GitHub. Your public site will update after Cloudflare deployment.');
@@ -250,7 +350,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     </section>
     {reconnectNeeded && <div className="hub-auth-warning" role="alert"><AlertCircle size={18}/><span>GitHub rejected the publishing request. Your draft is preserved. Try reconnecting as <strong>vakulkumarmore</strong>, then publish again.</span><button className="btn primary small" onClick={() => navigateToAuth('login')}><LogIn size={15}/> Reconnect GitHub</button></div>}
     {restorable && <div className="notice info-notice"><AlertCircle size={18}/><span>An unpublished draft from this browser is available.</span><button className="btn small" onClick={restore}>Restore draft</button><button className="icon-btn" aria-label="Dismiss recovery" onClick={() => setRestorable(null)}><X size={17}/></button></div>}
-    <div className="workspace-stats"><div><strong>{draft.length}</strong><span>Resources in draft</span></div><div><strong>+{added}</strong><span>Added</span></div><div><strong>{updated}</strong><span>Edited</span></div><div><strong>{removed}</strong><span>Removed</span></div></div>
+    <div className="workspace-stats"><div><strong>{draft.length}</strong><span>Resources in draft</span></div><div><strong>+{added}</strong><span>Added ({pendingCount} pending approval)</span></div><div><strong>{updated}</strong><span>Edited</span></div><div><strong>{removed}</strong><span>Removed</span></div></div>
     <nav className="workspace-tabs" aria-label="Admin workspace sections">
       <button className={tab === 'resources' ? 'active' : ''} onClick={() => setTab('resources')}><FileUp size={17}/> Resource manager</button>
       <button className={tab === 'import' ? 'active' : ''} onClick={() => setTab('import')}><UploadCloud size={17}/> Bulk importer</button>
@@ -275,6 +375,14 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
         <button type="button" aria-pressed={view === 'edited'} className={view === 'edited' ? 'active' : ''} onClick={() => changeView('edited')}>Edited <span>{updated}</span></button>
         <button type="button" aria-pressed={view === 'published'} className={view === 'published' ? 'active' : ''} onClick={() => changeView('published')}>Existing <span>{draft.length - added}</span></button>
       </div>
+      {view === 'new' && added > 0 && <section className="approval-workflow" aria-label="Three-step repository approval">
+        <div><strong>New repository approval</strong><p><b>1.</b> Import → <b>2.</b> Check GitHub → <b>3.</b> Approve. Publishing is a separate action.</p>
+          <small>{pendingCount} awaiting approval · {checkedCount} checked and pending · {added - pendingCount} approved</small></div>
+        <div className="approval-actions">
+          <button type="button" className="btn subtle small" disabled={checkingNew || !selected.some(k => newKeys.has(k))} onClick={() => void checkNewResources()}>{checkingNew ? <LoaderCircle className="spin" size={15}/> : <Search size={15}/>} {checkingNew ? 'Checking...' : '2. Check selected on GitHub'}</button>
+          <button type="button" className="btn primary small" disabled={checkingNew || !selected.some(k => pendingKeys.has(k) && checks[k])} onClick={approveCheckedResources}><Check size={15}/> 3. Approve checked</button>
+        </div>
+      </section>}
       {view === 'new' && <div className="manager-view-info" role="status">
         <Sparkles size={17}/><span>{added ? `Showing only ${added} newly added, unpublished resource${added === 1 ? '' : 's'}. Your existing ${draft.length - added} resources are hidden in this view.` : 'No new resources are waiting to be published. Import GitHub links to see them here.'}</span>
         {!added && <button className="btn small" onClick={() => setTab('import')}>Import links</button>}
@@ -283,7 +391,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
       <div className="selection-bar"><label><input type="checkbox" checked={visibleKeys.length > 0 && visibleKeys.every(k => selected.includes(k))} onChange={e => setSelected(prev => e.target.checked ? Array.from(new Set([...prev, ...visibleKeys])) : prev.filter(k => !visibleKeys.includes(k)))}/> Select page ({visible.length})</label><span>{filtered.length} in this view · {selected.length} selected</span><button className="btn danger small" disabled={!selected.length} onClick={() => remove(selected)}><Trash2 size={15}/> Delete selected ({selected.length})</button></div>
       <div className="manager-items">
         {visible.map(r => <div className="managed-resource" key={resourceKey(r.url)}>
-          <div className="managed-resource-main"><input type="checkbox" aria-label={`Select ${r.name}`} checked={selected.includes(resourceKey(r.url))} onChange={e => setSelected(prev => e.target.checked ? [...prev, resourceKey(r.url)] : prev.filter(x => x !== resourceKey(r.url)))}/><div className="managed-resource-body"><div className="managed-title"><strong>{r.name}</strong>{newKeys.has(resourceKey(r.url)) ? <span className="resource-status-badge is-new">New</span> : editedKeys.has(resourceKey(r.url)) ? <span className="resource-status-badge is-edited">Edited</span> : null}<span className="category-tag">{r.category}</span></div><a href={r.url} target="_blank" rel="noopener noreferrer">{r.url} <ExternalLink size={13}/></a></div><div className="managed-buttons"><button className="btn subtle small" onClick={() => setEditing(editing === resourceKey(r.url) ? null : resourceKey(r.url))}><Edit3 size={15}/> {editing === resourceKey(r.url) ? 'Close' : 'Edit'}</button><button className="icon-btn delete-btn" aria-label={`Delete ${r.name}`} onClick={() => remove([r.url])}><Trash2 size={17}/></button></div></div>
+          <div className="managed-resource-main"><input type="checkbox" aria-label={`Select ${r.name}`} checked={selected.includes(resourceKey(r.url))} onChange={e => setSelected(prev => e.target.checked ? [...prev, resourceKey(r.url)] : prev.filter(x => x !== resourceKey(r.url)))}/><div className="managed-resource-body"><div className="managed-title"><strong>{r.name}</strong>{newKeys.has(resourceKey(r.url)) ? <span className="resource-status-badge is-new">{approvedSet.has(resourceKey(r.url)) ? 'Approved' : checks[resourceKey(r.url)] ? 'Checked · Awaiting approval' : 'Pending check'}</span> : editedKeys.has(resourceKey(r.url)) ? <span className="resource-status-badge is-edited">Edited</span> : null}{checkErrors[resourceKey(r.url)] && <span className="approval-error" title={checkErrors[resourceKey(r.url)]}>Check failed</span>}{checks[resourceKey(r.url)]?.archived && <span className="approval-error">Archived</span>}<span className="category-tag">{r.category}</span></div><a href={r.url} target="_blank" rel="noopener noreferrer">{r.url} <ExternalLink size={13}/></a></div><div className="managed-buttons"><button className="btn subtle small" onClick={() => setEditing(editing === resourceKey(r.url) ? null : resourceKey(r.url))}><Edit3 size={15}/> {editing === resourceKey(r.url) ? 'Close' : 'Edit'}</button><button className="icon-btn delete-btn" aria-label={`Delete ${r.name}`} onClick={() => remove([r.url])}><Trash2 size={17}/></button></div></div>
           {editing === resourceKey(r.url) && <div className="edit-fields"><label>Name<input value={r.name} onChange={e => update(r.url, { name: e.target.value })}/></label><label>Category<input value={r.category} onChange={e => update(r.url, { category: e.target.value })}/></label><label className="wide">One-line summary<input maxLength={180} value={r.oneLiner ?? r.description} onChange={e => update(r.url, { oneLiner: e.target.value })}/></label><label className="wide">GitHub description<textarea rows={2} value={r.description} onChange={e => update(r.url, { description: e.target.value })}/></label><label>Hashtags (comma separated)<input value={(r.hashtags || []).join(', ')} onChange={e => update(r.url, { hashtags: e.target.value.split(/[\s,]+/).map(cleanHashtag).filter(Boolean) })}/></label><label>Tags (comma separated)<input value={(r.tags || []).join(', ')} onChange={e => update(r.url, { tags: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })}/></label><label>Language<input value={r.language || ''} onChange={e => update(r.url, { language: e.target.value })}/></label><label>License<input value={r.license || ''} onChange={e => update(r.url, { license: e.target.value })}/></label><label>Project homepage (HTTPS)<input value={r.homepage || ''} onChange={e => update(r.url, { homepage: e.target.value })}/></label><label className="wide">Custom project image / logo URL (optional, HTTPS)<input type="url" placeholder="https://example.com/project-logo.png" value={r.imageUrl || ''} onChange={e => update(r.url, { imageUrl: e.target.value || undefined })}/><small>Overrides the GitHub preview. Leave blank to use the repository social preview and owner avatar automatically.</small></label><div className="analysis-actions"><button className="btn subtle small" disabled={analyzingKey === resourceKey(r.url)} onClick={() => analyzeExisting(r)}>{analyzingKey === resourceKey(r.url) ? <LoaderCircle className="spin" size={15}/> : <Search size={15}/>} {analyzingKey === resourceKey(r.url) ? 'Analyzing…' : 'Refresh GitHub details & suggestions'}</button></div></div>}
         </div>)}
         {!visible.length && <div className="no-results">{view === 'new' && added === 0 ? 'No new resources yet. Import GitHub URLs to add some.' : 'No resources match this view. Try clearing the search or choose All resources.'}</div>}
@@ -292,9 +400,9 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     </div>}
 
     {tab === 'publish' && <div className="hub-publish-account-note"><Github size={16}/> Publishing as <strong>{login || 'connected GitHub owner'}</strong>. Trouble publishing? <button type="button" onClick={() => navigateToAuth('login')}>Reconnect your GitHub account</button>.</div>}
-    {tab === 'publish' && <div className="workspace-panel publish-panel"><div className="publish-icon"><Github size={26}/></div><h2>Publish your resource catalog</h2><p>Review your pending changes, then save them directly to <strong>vakulkumarmore/ai-github-resource-hub</strong>. Your Cloudflare deployment will update the public website.</p><div className="publish-steps"><div><strong>{draft.length}</strong><span>Total resources</span></div><div><strong>+{added}</strong><span>New links</span></div><div><strong>{updated}</strong><span>Edits</span></div><div><strong>{removed}</strong><span>Deletions</span></div></div>{dirty ? <div className="notice info-notice"><AlertCircle size={18}/> You have unpublished changes.</div> : <div className="notice"><CheckCircle2 size={18}/> Your draft matches the published catalog.</div>}<div className="publish-actions"><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Download backup</button><button className="btn primary" disabled={!dirty || busy} onClick={publish}>{busy ? <LoaderCircle className="spin" size={17}/> : <Save size={17}/>} {busy ? 'Publishing...' : `Save Changes to GitHub (${draft.length})`}</button></div><p className="publish-note">You can safely leave this page after a successful save. Cloudflare deployment and browser caching may take a short time.</p></div>}
+    {tab === 'publish' && <div className="workspace-panel publish-panel"><div className="publish-icon"><Github size={26}/></div><h2>Publish your resource catalog</h2><p>Review your pending changes, then save them directly to <strong>vakulkumarmore/ai-github-resource-hub</strong>. Your Cloudflare deployment will update the public website.</p><div className="publish-steps"><div><strong>{draft.length}</strong><span>Total resources</span></div><div><strong>+{added}</strong><span>New links</span></div><div><strong>{updated}</strong><span>Edits</span></div><div><strong>{removed}</strong><span>Deletions</span></div></div>{pendingCount > 0 && <div className="notice info-notice"><AlertCircle size={18}/> {pendingCount} newly imported resource(s) need GitHub checks and approval before publishing. Open Resource Manager → Newly added.</div>}{dirty ? <div className="notice info-notice"><AlertCircle size={18}/> You have unpublished changes.</div>} : <div className="notice"><CheckCircle2 size={18}/> Your draft matches the published catalog.</div>}<div className="publish-actions"><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Download backup</button><button className="btn primary" disabled={!dirty || busy || checkingNew || pendingCount > 0} onClick={publish}>{busy ? <LoaderCircle className="spin" size={17}/> : <Save size={17}/>} {busy ? 'Publishing...' : `Save Changes to GitHub (${draft.length})`}</button></div><p className="publish-note">You can safely leave this page after a successful save. Cloudflare deployment and browser caching may take a short time.</p></div>}
 
-    <div className="publish-bar"><div><span className={dirty ? 'dirty-indicator' : 'clean-indicator'}/><strong>{dirty ? `${added} added · ${updated} edited · ${removed} deleted` : 'All changes published'}</strong><span>{draft.length} resources in catalog</span></div><div><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Backup</button><button className="btn primary" disabled={!dirty || busy} onClick={publish}>{busy ? <LoaderCircle className="spin" size={16}/> : <Save size={16}/>} {busy ? 'Saving...' : `Save Changes to GitHub (${draft.length})`}</button></div></div>
+    <div className="publish-bar"><div><span className={dirty ? 'dirty-indicator' : 'clean-indicator'}/><strong>{dirty ? `${added} added · ${updated} edited · ${removed} deleted` : 'All changes published'}</strong><span>{draft.length} resources in catalog</span></div><div><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Backup</button><button className="btn primary" disabled={!dirty || busy || checkingNew || pendingCount > 0} onClick={publish}>{busy ? <LoaderCircle className="spin" size={16}/> : <Save size={16}/>} {busy ? 'Saving...' : `Save Changes to GitHub (${draft.length})`}</button></div></div>
   </main>;
 }
 
