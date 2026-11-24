@@ -26,8 +26,11 @@ test('individual spotlight uses factual published resource metadata in exactly 1
   const p=makeIndividualVideo(a);
   assert.equal(p.mode,'individual');
   assert.deepEqual(p.selectedUrls,[a.url]);
-  assert.equal(p.scenes[1].subtitle,a.oneLiner);
-  assert.ok(p.scenes[2].subtitle.includes('1,200 GitHub stars'));
+  assert.ok(p.scenes[1].subtitle.startsWith('Project One helps automate'));
+  assert.equal(p.scenes[1].extra,a.description);
+  assert.ok(p.scenes.every(s=>s.url===a.url),'complete GitHub URL appears in every scene');
+  assert.ok(p.scenes.every(s=>s.subtitle.split(/\s+/).length<=12),'voice lines remain brief');
+  assert.ok(p.scenes[2].detail.includes('1,200 stars'));
   verify(p,4);
 });
 test('roundup uses three repositories and bounded 15-second scenes',()=>{
@@ -37,6 +40,8 @@ test('roundup uses three repositories and bounded 15-second scenes',()=>{
   assert.equal(p.scenes[1].heading,'Project One');
   assert.equal(p.scenes[2].heading,'Project Two');
   assert.equal(p.scenes[3].heading,'Project Three');
+  assert.deepEqual(p.scenes.slice(1,4).map(s=>s.url),[a.url,b.url,c.url]);
+  assert.ok(p.scenes.slice(1,4).every(s=>s.extra.includes('description')));
   verify(p,5);
 });
 test('editing subtitles invalidates exact-content approval signature',()=>{
