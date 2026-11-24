@@ -18,6 +18,8 @@ const redirect=(url,headers={})=>new Response(null,{status:302,headers:{location
 const redirectWithCookies=(url,values)=>{const headers=new Headers({location:url});for(const value of values)headers.append('Set-Cookie',value);return new Response(null,{status:302,headers});};
 export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pathname,cs=cookies(req);if(!path.startsWith('/api/'))return env.ASSETS.fetch(req);
  if(!env.CLIENT_ID||!env.CLIENT_SECRET||!env.SESSION_SECRET||!env.OWNER_LOGIN||!env.REPO_NAME)return json({error:'Server configuration incomplete'},503);
+ // Public, non-sensitive build marker to detect a stale or wrong Cloudflare deployment.
+ if(path==='/api/diagnostics'&&req.method==='GET')return json({service:'ai-github-resource-hub',version:'v29-analyzer-diagnostics',workerOrigin:url.origin,apiRoutesActive:true});
  if(path==='/api/login'){const state=crypto.randomUUID();const target=new URL('https://github.com/login/oauth/authorize');target.searchParams.set('client_id',env.CLIENT_ID);target.searchParams.set('redirect_uri',url.origin+'/api/callback');target.searchParams.set('state',state);target.searchParams.set('scope','public_repo');return redirect(target.toString(),{'set-cookie':cookie('oauth_state',state,600)});}
  if(path==='/api/callback'){if(!url.searchParams.get('state')||url.searchParams.get('state')!==cs.oauth_state)return json({error:'Invalid OAuth state'},403);const code=url.searchParams.get('code');if(!code)return json({error:'Missing OAuth code'},400);const exchange=await fetch('https://github.com/login/oauth/access_token',{method:'POST',headers:{Accept:'application/json','content-type':'application/json'},body:JSON.stringify({client_id:env.CLIENT_ID,client_secret:env.CLIENT_SECRET,code,redirect_uri:url.origin+'/api/callback'})});const auth=await exchange.json();if(!auth.access_token)return json({error:'GitHub authorization failed'},401);const userRes=await fetch('https://api.github.com/user',{headers:gh(auth.access_token)});if(!userRes.ok)return json({error:'Cannot verify GitHub account'},401);const user=await userRes.json();if(user.login.toLowerCase()!==env.OWNER_LOGIN.toLowerCase())return json({error:'Only the configured owner can administer this catalog'},403);const session=await seal({token:auth.access_token,login:user.login,exp:Date.now()+7*86400000},env.SESSION_SECRET);return redirectWithCookies('/#admin',[cookie('hub_session',session,7*86400),cookie('oauth_state','',0)]);}
  if(path==='/api/logout')return redirect('/',{'set-cookie':cookie('hub_session','',0)});
@@ -81,6 +83,15 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
    }
    if(results.length && results.every(item => item.error === 'Unable to reach GitHub API')){
      return json({error:'GitHub metadata API could not be reached for this batch. No repository was marked invalid. Check connectivity and retry later.'},503);
+   }
+   // A batch with zero successes is an actionable failure, not a reason to
+   // proceed through 1,200+ entries. Include the first cause, never credentials.
+   if(results.length && results.every(item => typeof item.error === 'string' && item.error)){
+     const reasons=[...new Set(results.map(item => item.error))].slice(0,3);
+     return json({
+       error:`All ${results.length} GitHub metadata lookups in this batch failed. Reasons: ${reasons.join('; ')}. Stop analysis and check your GitHub sign-in, Worker deployment and API permissions. No catalog data was changed.`,
+       batchFailed:true, reasons
+     },424);
    }
    return json({results});
  }
