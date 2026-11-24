@@ -29,7 +29,7 @@ export default function VideoStudio({publishedCatalog}:Props){
   const [playing,setPlaying]=useState(false);
   const [busy,setBusy]=useState(false);
   const [audioBusy,setAudioBusy]=useState(false);
-  const [voice,setVoice]=useState<VoiceOption>('af_heart');
+  const [voice,setVoice]=useState<VoiceOption>('freya');
   const [musicLevel,setMusicLevel]=useState(.12);
   const [sound,setSound]=useState<AudioBuffer|null>(null);
   const [soundSignature,setSoundSignature]=useState('');
@@ -220,10 +220,11 @@ export default function VideoStudio({publishedCatalog}:Props){
             <div className="video-studio-audio-controls">
               <label>English narration voice
                 <select value={voice} disabled={audioBusy} onChange={e=>changeVoice(e.target.value as VoiceOption)}>
-                  <option value="af_heart">Female · warm</option>
-                  <option value="af_bella">Female · energetic</option>
-                  <option value="am_michael">Male · clear</option>
-                  <option value="bm_george">Male · British</option>
+                  <option value="freya">Freya · default</option>
+                  <option value="claire">Claire</option>
+                  <option value="sofia">Sofia</option>
+                  <option value="lukas">Lukas</option>
+                  <option value="lucas">Lucas</option>
                 </select>
               </label>
               <label>Original background music level: {Math.round(musicLevel*100)}%
@@ -236,7 +237,7 @@ export default function VideoStudio({publishedCatalog}:Props){
             </button>
             {audioBusy&&<progress max={100} value={audioProgress} aria-label="Generating narration"/>}
             {audioStatus&&<p role="status">{audioStatus}</p>}
-            <small>First use downloads the free Kokoro speech model (approximately 80–120 MB). Audio is generated on your device; no cloud narration fees. A slow device may take longer.</small>
+            <small>First use downloads the free MediaPipe Phonon model (approximately 87 MB). Audio is generated on your device; no cloud narration fees. A slow device may take longer.</small>
           </div>
           <div className="video-studio-approval">
             <strong>{isApproved?<><CheckCircle2 size={18}/> Approved for export</>:<>4. Preview and approve with audio</>}</strong>
