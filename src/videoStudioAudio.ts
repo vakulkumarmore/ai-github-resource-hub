@@ -1,4 +1,5 @@
 import { VIDEO_SECONDS, type VideoProject } from './videoStudioEngine';
+import { fitSpokenScene } from './videoNarrationFit';
 
 /**
  * Zero paid APIs. MediaPipe Phonon speech runs locally using a small model
@@ -6,6 +7,8 @@ import { VIDEO_SECONDS, type VideoProject } from './videoStudioEngine';
  * into exactly 15 seconds by OfflineAudioContext and muxed into the exported MP4.
  */
 export type VoiceOption='freya'|'claire'|'sofia'|'lukas'|'lucas';
+export type NarrationAdjustment={sceneId:string;from:string;to:string};
+export type SoundtrackResult={audio:AudioBuffer;project:VideoProject;adjustments:NarrationAdjustment[]};
 type RawSpeech={samples:Float32Array; sampleRateHz:number};
 type TtsEngine={synthesize:(text:string,options?:{voiceId?:string})=>Promise<RawSpeech>};
 type Progress=(stage:string,percent:number)=>void;
@@ -147,41 +150,43 @@ function buildOriginalMusic(ctx:OfflineAudioContext,musicLevel:number):void {
 
 export async function generateVideoSoundtrack(
   project:VideoProject,voice:VoiceOption,musicLevel:number,onProgress:(stage:string,progress:number)=>void,localModel?:File|null,
-):Promise<AudioBuffer>{
+):Promise<SoundtrackResult>{
   if(typeof OfflineAudioContext==='undefined')throw new Error('Your browser does not support offline audio mixing. Use a current Edge or Chrome browser.');
   onProgress('Preparing local speech synthesis…',3);
   const tts=await loadEngine(onProgress,localModel);
   const context=new OfflineAudioContext(2,48000*VIDEO_SECONDS,48000);
   buildOriginalMusic(context,musicLevel);
   const voices=ctxVoiceGain(context);
-  let index=0;
-  for(const scene of project.scenes){
-    onProgress('Generating spoken narration for scene '+(index+1)+' of '+project.scenes.length+'…',8+index*75/project.scenes.length);
-    const text=scene.subtitle.trim();
-    if(!text){index++;continue;}
-    const generated=await tts.synthesize(text,{voiceId:voice});
-    const samples=generated.samples,rate=generated.sampleRateHz;
-    if(!samples||!samples.length||!Number.isFinite(rate)||rate<8000)throw new Error('Narration model returned invalid audio for scene '+(index+1));
-    const clip=context.createBuffer(1,samples.length,rate);
-    clip.copyToChannel(new Float32Array(samples),0);
-    const start=scene.start+.12,available=scene.end-start-.1;
-    const speed=Math.max(1,clip.duration/available);
-    // A 15-second video requires concise speech. Never silently cut dialogue.
-    if(speed>1.55){
-      throw new Error('Scene '+(index+1)+' narration is too long ('+clip.duration.toFixed(1)+' seconds for '+available.toFixed(1)+' seconds). Shorten this scene subtitle and generate again.');
+  const updatedScenes=project.scenes.map(scene=>({...scene}));
+  const adjustments:NarrationAdjustment[]=[];
+  for(let index=0;index<updatedScenes.length;index++){
+    const scene=updatedScenes[index];
+    onProgress('Generating narration for scene '+(index+1)+' of '+updatedScenes.length+'…',8+index*75/updatedScenes.length);
+    const fitted=await fitSpokenScene(
+      scene,
+      text=>tts.synthesize(text,{voiceId:voice}),
+      message=>onProgress('Scene '+(index+1)+': '+message,8+(index+.5)*75/updatedScenes.length),
+    );
+    if(fitted.text!==scene.subtitle.trim()){
+      adjustments.push({sceneId:scene.id,from:scene.subtitle,to:fitted.text});
+      scene.subtitle=fitted.text;
     }
+    if(!fitted.audio)continue;
+    const {samples,sampleRateHz}=fitted.audio;
+    const clip=context.createBuffer(1,samples.length,sampleRateHz);
+    clip.copyToChannel(new Float32Array(samples),0);
     const node=context.createBufferSource();
-    node.buffer=clip;node.playbackRate.value=speed;
+    node.buffer=clip;
+    node.playbackRate.value=fitted.playbackRate;
     const level=context.createGain();level.gain.value=.84;
     node.connect(level).connect(voices);
-    node.start(start);
-    index++;
+    node.start(scene.start+.12);
   }
-  onProgress('Mixing spoken narration with original background music…',90);
+  onProgress('Mixing narration with original background music…',90);
   const rendered=await context.startRendering();
   if(Math.abs(rendered.duration-VIDEO_SECONDS)>.02)throw new Error('The mixed audio duration is not 15 seconds');
   onProgress('Narration and music are ready to preview and export.',100);
-  return rendered;
+  return {audio:rendered,project:{...project,scenes:updatedScenes},adjustments};
 }
 function ctxVoiceGain(context:OfflineAudioContext):DynamicsCompressorNode {
   const compressor=context.createDynamicsCompressor();
