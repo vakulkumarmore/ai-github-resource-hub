@@ -79,6 +79,10 @@ test('404 from owner OAuth on public repo is distinguishable from missing repo',
     assert.equal(missing.status,424);
     const failed = await missing.json();
     assert.match(failed.error,/also checked public access/);
+    assert.equal(failed.results.length, 1);
+    assert.equal(failed.results[0].url, 'https://github.com/missing/missing-repo');
+    assert.match(failed.results[0].error, /not found/i);
+    assert.ok(!JSON.stringify(failed).includes('secret-for-test-only'));
   } finally {
     globalThis.fetch = previousFetch;
   }
