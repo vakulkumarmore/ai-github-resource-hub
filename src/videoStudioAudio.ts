@@ -43,8 +43,8 @@ function buildOriginalMusic(ctx:OfflineAudioContext,musicLevel:number):void {
       oscillator.frequency.value=musicNotes[bar][pitch];
       const envelope=ctx.createGain();
       envelope.gain.setValueAtTime(.0001,start);
-      envelope.gain.exponentialRampToValueAtTime(pitch===0?.15:.055,start+.28);
-      envelope.gain.setValueAtTime(pitch===0?.15:.055,start+2.6);
+      envelope.gain.exponentialRampToValueAtTime(pitch===0?.45:.20,start+.28);
+      envelope.gain.setValueAtTime(pitch===0?.45:.20,start+2.6);
       envelope.gain.exponentialRampToValueAtTime(.0001,Math.min(VIDEO_SECONDS,start+3.74));
       oscillator.connect(envelope).connect(master);
       oscillator.start(start);oscillator.stop(Math.min(VIDEO_SECONDS,start+3.75));
@@ -56,7 +56,7 @@ function buildOriginalMusic(ctx:OfflineAudioContext,musicLevel:number):void {
     osc.type='sine';osc.frequency.setValueAtTime(880,beat);
     osc.frequency.exponentialRampToValueAtTime(320,beat+.075);
     gain.gain.setValueAtTime(.0001,beat);
-    gain.gain.exponentialRampToValueAtTime(.032,beat+.006);
+    gain.gain.exponentialRampToValueAtTime(.10,beat+.006);
     gain.gain.exponentialRampToValueAtTime(.0001,Math.min(VIDEO_SECONDS,beat+.12));
     osc.connect(gain).connect(master);osc.start(beat);osc.stop(Math.min(VIDEO_SECONDS,beat+.13));
   }
