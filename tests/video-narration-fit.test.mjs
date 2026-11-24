@@ -79,3 +79,12 @@ test('roundup narration can fit short pick intros and preserve all three project
   assert.ok(fitted.every(x=>x.playbackRate<=MAX_NARRATION_SPEED));
   assert.equal(new Set(p.scenes.slice(1,4).map(s=>s.url)).size,3);
 });
+
+test('empty speech cues are omitted from SRT for instrumental bumpers',()=>{
+  const original=makeIndividualVideo(repo('My Project','https://github.com/example/project'));
+  const updated={...original,scenes:original.scenes.map(s=>s.id==='outro'?{...s,subtitle:''}:s)};
+  const srt=videoSrt(updated);
+  assert.equal(srt.split(' --> ').length-1,3);
+  assert.ok(!srt.includes('00:00:12,000'));
+  assert.ok(srt.includes('00:00:08,000'));
+});
