@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, LogIn, LogOut, Plus, RefreshCcw, Save, Search, ShieldAlert, ShieldCheck, Sparkles, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, CheckCircle2, Download, Edit3, ExternalLink, FileUp, Github, LoaderCircle, Lock, LogIn, LogOut, Plus, RefreshCcw, Save, Search, ShieldAlert, ShieldCheck, Sparkles, TrendingUp, Trash2, Undo2, UploadCloud, X } from 'lucide-react';
 import Importer, { fetchMetadata, resourceKey, type Resource } from './Importer';
 import BulkAnalyzer from './BulkAnalyzer';
 import HealthReview from './HealthReview';
+import DailyDiscoveries from './DailyDiscoveries';
 import { apiJson } from './apiJson';
 import { cleanHashtag, githubDetailsToResource } from './resourceAnalysis';
 import './adminAuth.css';
 import './approvalWorkflow.css';
 
-type AdminTab = 'resources' | 'import' | 'analyze' | 'health' | 'publish';
+type AdminTab = 'resources' | 'import' | 'discover' | 'analyze' | 'health' | 'publish';
 type ResourceView = 'new' | 'all' | 'edited' | 'published';
 type Props = { publishedCatalog: Resource[]; onSaved: (resources: Resource[]) => void; onBack: () => void };
 const pageSize = 30;
@@ -357,6 +358,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     <nav className="workspace-tabs" aria-label="Admin workspace sections">
       <button className={tab === 'resources' ? 'active' : ''} onClick={() => setTab('resources')}><FileUp size={17}/> Resource manager</button>
       <button className={tab === 'import' ? 'active' : ''} onClick={() => setTab('import')}><UploadCloud size={17}/> Bulk importer</button>
+      <button className={tab === 'discover' ? 'active' : ''} onClick={() => setTab('discover')}><TrendingUp size={17}/> Daily discoveries</button>
       <button className={tab === 'analyze' ? 'active' : ''} onClick={() => setTab('analyze')}><Search size={17}/> Analyze all</button>
       <button className={tab === 'health' ? 'active' : ''} onClick={() => setTab('health')}><ShieldAlert size={17}/> Health review</button>
       <button className={tab === 'publish' ? 'active' : ''} onClick={() => setTab('publish')}><Save size={17}/> Publishing {dirty && <span className="notification-dot"/>}</button>
@@ -366,12 +368,13 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     {tab === 'health' && <HealthReview catalog={draft} onStageRemoval={urls => { if (remove(urls)) { setTab('resources'); setView('all'); setPage(1); } }}/>}
 
     {tab === 'import' && <Importer catalog={draft} onApply={applyImported} onNavigate={() => setTab('resources')}/>}
+    {tab === 'discover' && <DailyDiscoveries catalog={[...publishedCatalog,...draft]} onStage={applyImported}/>}
 
     {/* Keep the analyzer mounted when navigating to Resources so batch progress and review aren't lost. */}
     <div hidden={tab !== 'analyze'}><BulkAnalyzer catalog={draft} onApply={applyBulkEnrichment} onReconnect={() => navigateToAuth('login')}/></div>
 
     {tab === 'resources' && <div className="workspace-panel manager-panel">
-      <div className="panel-top"><div><h2>Your catalog</h2><p>Search, edit or remove resources. New imports appear here immediately.</p></div><div className="action-row"><button className="btn subtle" onClick={() => setTab('analyze')}><Search size={17}/> Analyze all existing</button><button className="btn primary" onClick={() => setTab('import')}><Plus size={17}/> Add resources</button></div></div>
+      <div className="panel-top"><div><h2>Your catalog</h2><p>Search, edit or remove resources. New imports appear here immediately.</p></div><div className="action-row"><button className="btn subtle" onClick={() => setTab('discover')}><TrendingUp size={17}/> Find trending repos</button><button className="btn subtle" onClick={() => setTab('analyze')}><Search size={17}/> Analyze all existing</button><button className="btn primary" onClick={() => setTab('import')}><Plus size={17}/> Add resources</button></div></div>
       <div className="manager-views" role="group" aria-label="Show resource status">
         <button type="button" aria-pressed={view === 'new'} className={view === 'new' ? 'active' : ''} onClick={() => changeView('new')}><Sparkles size={16}/> Newly added <span>{added}</span></button>
         <button type="button" aria-pressed={view === 'all'} className={view === 'all' ? 'active' : ''} onClick={() => changeView('all')}>All resources <span>{draft.length}</span></button>
