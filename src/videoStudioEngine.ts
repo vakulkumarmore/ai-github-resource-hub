@@ -156,14 +156,19 @@ export async function renderVideoMp4(project:VideoProject,audio:AudioBuffer,onPr
   output.addVideoTrack(source);
   const audioSource=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:128000})});
   output.addAudioTrack(audioSource);
-  await output.start();
   if(audio.duration<VIDEO_SECONDS-0.1)throw new Error('The soundtrack is shorter than the 15-second video. Generate the narration again.');
-  await audioSource.add(audio);
+  await output.start();
+  // Feed both tracks concurrently: awaiting a full 15-second audio buffer before
+  // the first video frame can deadlock a bounded muxer waiting for video samples.
+  let audioError:unknown=null;
+  const audioJob=audioSource.add(audio).catch(error=>{audioError=error;});
   for(let frame=0;frame<VIDEO_SECONDS*VIDEO_FPS;frame++){
     drawVideoFrame(canvas,project,frame/VIDEO_FPS);
     await source.add(frame/VIDEO_FPS,1/VIDEO_FPS);
     if(frame%12===0)onProgress(Math.round(frame/(VIDEO_SECONDS*VIDEO_FPS)*100));
   }
+  await audioJob;
+  if(audioError)throw audioError;
   await output.finalize();
   onProgress(100);
   if(!target.buffer)throw new Error('MP4 encoder did not return a completed video');
