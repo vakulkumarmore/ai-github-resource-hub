@@ -110,18 +110,16 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
         updateResults(next);
         count += batch.length; requests += 1;
         if (mounted.current) { setCompleteCount(count); setBatchNumber(requests); }
-        // Older Worker deployments can reply with HTTP 200 and one error per URL
-        // even when the same GitHub token or upstream service has failed.
-        // Stop on a shared problem instead of making 120+ pointless requests.
-        const common = returned[0]?.error;
-        const allFailedTogether = !!common && returned.length === batch.length &&
-          returned.every(item => item.error === common) &&
-          /(?:http\s*401|http\s*403|unauthori[sz]ed|access restriction|rate limit|oauth|token|unable to reach github api|no result returned)/i.test(common);
-        if (allFailedTogether || returned.some(item => /rate limit|secondary limit|abuse|access restriction/i.test(item.error || ''))) {
+        // Older Worker deployments may respond HTTP 200 with per-URL errors.
+        // Stop after ANY entirely failed batch, regardless of message wording.
+        const allFailed = returned.length === batch.length && returned.every(item => !!item.error);
+        const rateLimited = returned.some(item => /rate limit|secondary limit|abuse|access restriction/i.test(item.error || ''));
+        if (allFailed || rateLimited) {
           limitHit = true;
           setStoppedForLimit(true);
-          setMessage(allFailedTogether
-            ? `Analysis stopped after ${requests} batch(es): every lookup failed with the same error, "${common}". These are NOT confirmed invalid repositories. Check GitHub sign-in, then retry.`
+          const reasons = [...new Set(returned.map(item => item.error).filter(Boolean))].slice(0, 3).join('; ');
+          setMessage(allFailed
+            ? `Analysis stopped after ${requests} batch(es): all ${batch.length} GitHub lookups failed. Reasons: ${reasons}. These failures do not mean the repositories are invalid. Verify GitHub sign-in and check the Worker deployment.`
             : 'GitHub reported a rate limit or access restriction. Analysis stopped; wait before retrying failed resources.');
           break;
         }
@@ -131,7 +129,8 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
       if (mounted.current) setState(limitHit ? 'paused' : 'complete');
     } catch (error) {
       if (abort.signal.aborted) return;
-      setMessage(error instanceof Error ? error.message : 'Analysis interrupted. Completed results are retained.');
+      setStoppedForLimit(true);
+      setMessage(`Analysis stopped: ${error instanceof Error ? error.message : 'GitHub metadata request failed'}. No catalog edits were applied. Check /api/diagnostics on your current site and reconnect GitHub if necessary.`);
       if (mounted.current) setState('paused');
     } finally {
       if (controller.current === abort) controller.current = null;
@@ -188,6 +187,13 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
       <div><strong>{catalog.length}</strong><span>In your draft</span></div><div><strong>{success}</strong><span>Analyzed</span></div>
       <div><strong>{changed.length}</strong><span>Suggested updates</span></div><div><strong>{failures}</strong><span>Errors</span></div>
     </div>
+    {failures > 0 && success === 0 && <div className="notice info-notice" role="alert">
+      <AlertCircle size={18}/>
+      <div><strong>All attempted checks have failed. Do not continue the full scan.</strong>
+        <div>Most common error: {errorBreakdown[0]?.[0] || 'Unknown'}. This is not proof these repositories are invalid.</div>
+        <div>Pause, inspect the API error, and use Start fresh analysis after the connection is fixed.</div>
+      </div>
+    </div>}
     <div className="enrich-settings">
       <div className="enrich-options-row"><label>Analyze <select value={scope} disabled={state === 'running'} onChange={e => setScope(e.target.value as 'all' | 'missing')}><option value="all">All current resources</option><option value="missing">Only incomplete resources</option></select></label>
         <label>Batch size <select value={batchSize} disabled={state === 'running'} onChange={e => setBatchSize(Number(e.target.value))}><option value={5}>5 resources</option><option value={10}>10 resources</option></select></label></div>
