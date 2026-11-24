@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, CheckCircle2, Download, Film, LoaderCircle, Pause, Play, Search, ShieldCheck, Sparkles, Video, X } from 'lucide-react';
 import { resourceKey, type Resource } from './Importer';
-import { drawVideoFrame, makeIndividualVideo, makeRoundupVideo, renderVideoMp4, videoSignature, videoSrt, VIDEO_HEIGHT, VIDEO_SECONDS, VIDEO_WIDTH, type VideoProject, type VideoMode } from './videoStudioEngine';
+import { autoPickRoundup, drawVideoFrame, makeIndividualVideo, makeRoundupVideo, renderVideoMp4, videoSignature, videoSrt, VIDEO_HEIGHT, VIDEO_SECONDS, VIDEO_WIDTH, type VideoProject, type VideoMode } from './videoStudioEngine';
 import './videoStudio.css';
 
 type Props={publishedCatalog:Resource[]};
@@ -68,6 +68,13 @@ export default function VideoStudio({publishedCatalog}:Props){
   };
   const changeMode=(next:VideoMode)=>{
     setMode(next);setSelected([]);setProject(null);setQuery('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
+  };
+  const pickToday=()=>{
+    const picked=autoPickRoundup(eligible,new Date().toISOString().slice(0,10));
+    if(!picked){setStatus('At least three published repositories are required for a roundup.');return;}
+    setSelected(picked.map(r=>resourceKey(r.url)));
+    setProject(null);setPlaying(false);current.current=0;setPosition(0);
+    setStatus('Selected three recently active published repositories for today. Review the selection before generating and approving the video.');
   };
   const create=()=>{
     if(currentResources.length!==required)return;
@@ -136,6 +143,7 @@ export default function VideoStudio({publishedCatalog}:Props){
           })}
           {!matches.length&&<p>No matching published repositories.</p>}
         </div>
+        {mode==='roundup'&&<button type="button" className="btn subtle small" onClick={pickToday}><Sparkles size={15}/> Pick today's 3 automatically</button>}
         <div className="video-studio-selection">
           {currentResources.map((r,i)=><span key={resourceKey(r.url)}>{mode==='roundup'?String(i+1)+'. ':''}{r.name}<button type="button" onClick={()=>toggle(r.url)} aria-label={'Remove '+r.name}><X size={12}/></button></span>)}
         </div>
