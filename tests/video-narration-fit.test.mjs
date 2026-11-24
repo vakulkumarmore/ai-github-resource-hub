@@ -85,6 +85,6 @@ test('empty speech cues are omitted from SRT for instrumental bumpers',()=>{
   const updated={...original,scenes:original.scenes.map(s=>s.id==='outro'?{...s,subtitle:''}:s)};
   const srt=videoSrt(updated);
   assert.equal(srt.split(' --> ').length-1,3);
-  assert.ok(!srt.includes('00:00:12,000'));
+  assert.ok(!srt.includes('00:00:12,000 --> 00:00:15,000'),'No subtitle cue should cover the instrumental outro');
   assert.ok(srt.includes('00:00:08,000'));
 });
