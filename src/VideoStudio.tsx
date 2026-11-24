@@ -92,24 +92,24 @@ export default function VideoStudio({publishedCatalog}:Props){
     if(audioBusy||busy)return;
     const key=resourceKey(url);
     setSelected(prev=>prev.includes(key)?prev.filter(k=>k!==key):prev.length>=required?[...prev.slice(1),key]:[...prev,key]);
-    setProject(null);setSound(null);setSoundSignature('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
+    setProject(null);setSound(null);setSoundSignature('');setNarrationAdjustments([]);setStatus('');setPlaying(false);current.current=0;setPosition(0);
   };
   const changeMode=(next:VideoMode)=>{
     if(audioBusy||busy)return;
-    setMode(next);setSelected([]);setProject(null);setSound(null);setSoundSignature('');setQuery('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
+    setMode(next);setSelected([]);setProject(null);setSound(null);setSoundSignature('');setNarrationAdjustments([]);setQuery('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
   };
   const pickToday=()=>{
     if(audioBusy||busy)return;
     const picked=autoPickRoundup(eligible,new Date().toISOString().slice(0,10));
     if(!picked){setStatus('At least three published repositories are required for a roundup.');return;}
     setSelected(picked.map(r=>resourceKey(r.url)));
-    setProject(null);setSound(null);setSoundSignature('');setPlaying(false);current.current=0;setPosition(0);
+    setProject(null);setSound(null);setSoundSignature('');setNarrationAdjustments([]);setPlaying(false);current.current=0;setPosition(0);
     setStatus('Selected three recently active published repositories for today. Review the selection before generating and approving the video.');
   };
   const create=()=>{
     if(audioBusy||busy||currentResources.length!==required)return;
     const next=mode==='individual'?makeIndividualVideo(currentResources[0]):makeRoundupVideo(currentResources as [Resource,Resource,Resource]);
-    setProject(next);setSound(null);setSoundSignature('');setPosition(0);current.current=0;setPlaying(false);
+    setProject(next);setSound(null);setSoundSignature('');setNarrationAdjustments([]);setPosition(0);current.current=0;setPlaying(false);
     setStatus('Review the full details and complete GitHub links, edit spoken subtitles, then generate narrated audio and music before approval.');
   };
   const editScene=(index:number,field:'heading'|'subtitle'|'detail'|'extra',value:string)=>{
@@ -258,13 +258,13 @@ export default function VideoStudio({publishedCatalog}:Props){
                 <input type="file" accept=".litertlm" disabled={audioBusy||busy}
                   onChange={event=>{
                     const file=event.target.files?.[0]||null;
-                    setModelFile(file);setPlaying(false);setSound(null);setSoundSignature('');
+                    setModelFile(file);setPlaying(false);setSound(null);setSoundSignature('');setNarrationAdjustments([]);
                     setAudioStatus(file?'Local model selected: '+file.name+' ('+(file.size/1048576).toFixed(1)+' MiB). Click Generate again.':'');
                   }}/>
               </label>
               <small>Prefer the automatic download above. If your network blocks the model, get the official <a href="https://huggingface.co/litert-community/phonon-31m-en/blob/main/phonon_int8.litertlm" rel="noopener noreferrer" target="_blank">Phonon 31M model from Hugging Face</a>, then select the .litertlm file here. The model is used in your browser and is not uploaded to this website.</small>
               {modelFile&&<button type="button" className="btn subtle small" disabled={audioBusy} onClick={()=>{
-                setModelFile(null);setSound(null);setSoundSignature('');setAudioStatus('Using automatic model download on the next attempt.');
+                setModelFile(null);setSound(null);setSoundSignature('');setNarrationAdjustments([]);setAudioStatus('Using automatic model download on the next attempt.');
               }}>Use automatic download instead</button>}
             </div>
             <button className="btn primary" disabled={audioBusy||busy} onClick={()=>void makeAudio()}>
