@@ -1,19 +1,25 @@
 import { VIDEO_SECONDS, type VideoProject } from './videoStudioEngine';
 
 /**
- * Zero paid APIs. Kokoro speech is synthesized locally with a model downloaded
- * from Hugging Face on first use. Audio + original procedural music are mixed
+ * Zero paid APIs. MediaPipe Phonon speech runs locally using a small model
+ * downloaded from Hugging Face on first use. Voice and original music are mixed
  * into exactly 15 seconds by OfflineAudioContext and muxed into the exported MP4.
  */
-export type VoiceOption='af_heart'|'af_bella'|'am_michael'|'bm_george';
-type RawSpeech={audio:Float32Array; sampling_rate:number};
-type TtsEngine={generate:(text:string,settings:{voice:VoiceOption})=>Promise<RawSpeech>};
+export type VoiceOption='freya'|'claire'|'sofia'|'lukas'|'lucas';
+type RawSpeech={samples:Float32Array; sampleRateHz:number};
+type TtsEngine={synthesize:(text:string,options?:{voiceId?:string})=>Promise<RawSpeech>};
 let cachedEngine:Promise<TtsEngine>|null=null;
+// Stable public Apache-2.0 English Phonon 31M model, ~87 MB, downloaded
+// on demand. No onnxruntime-node binaries or server installation required.
+const MODEL_URL='https://huggingface.co/litert-community/phonon-31m-en/resolve/main/phonon_int8.litertlm';
 const loadEngine=()=>{
   if(!cachedEngine){
-    cachedEngine=import('kokoro-js').then(async ({KokoroTTS})=>
-      await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{dtype:'q8',device:'wasm'}) as TtsEngine
-    ).catch(error=>{cachedEngine=null;throw error;});
+    cachedEngine=import('@mediapipe/tasks-audio').then(async ({FilesetResolver,TextToSpeech})=>{
+      const fileset=await FilesetResolver.forAudioTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-audio@1.2.3/wasm');
+      return await TextToSpeech.createFromOptions(fileset,{
+        baseOptions:{modelAssetPath:MODEL_URL},defaultVoiceId:'freya',
+      }) as TtsEngine;
+    }).catch(error=>{cachedEngine=null;throw error;});
   }
   return cachedEngine;
 };
@@ -60,7 +66,7 @@ export async function generateVideoSoundtrack(
   project:VideoProject,voice:VoiceOption,musicLevel:number,onProgress:(stage:string,progress:number)=>void,
 ):Promise<AudioBuffer>{
   if(typeof OfflineAudioContext==='undefined')throw new Error('Your browser does not support offline audio mixing. Use a current Edge or Chrome browser.');
-  onProgress('Loading local narration model (first use may download 80–120 MB)…',3);
+  onProgress('Loading local MediaPipe narration model (first use downloads ~87 MB)…',3);
   const tts=await loadEngine();
   const context=new OfflineAudioContext(2,48000*VIDEO_SECONDS,48000);
   buildOriginalMusic(context,musicLevel);
@@ -70,8 +76,8 @@ export async function generateVideoSoundtrack(
     onProgress('Generating spoken narration for scene '+(index+1)+' of '+project.scenes.length+'…',8+index*75/project.scenes.length);
     const text=scene.subtitle.trim();
     if(!text){index++;continue;}
-    const generated=await tts.generate(text,{voice});
-    const samples=generated.audio,rate=generated.sampling_rate;
+    const generated=await tts.synthesize(text,{voiceId:voice});
+    const samples=generated.samples,rate=generated.sampleRateHz;
     if(!samples||!samples.length||!Number.isFinite(rate)||rate<8000)throw new Error('Narration model returned invalid audio for scene '+(index+1));
     const clip=context.createBuffer(1,samples.length,rate);
     clip.copyToChannel(new Float32Array(samples),0);
