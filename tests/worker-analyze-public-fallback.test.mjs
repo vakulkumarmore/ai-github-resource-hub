@@ -21,6 +21,10 @@ test('404 from owner OAuth on public repo is distinguishable from missing repo',
     visited.push({path:url.pathname, auth:!!(init.headers?.Authorization || init.headers?.authorization)});
     if (url.hostname === 'github.com' && url.pathname === '/login/oauth/access_token')
       return sendJson({access_token:'secret-for-test-only'});
+    if (url.hostname === 'huggingface.co' && url.pathname.endsWith('/phonon_int8.litertlm'))
+      return new Response(new Uint8Array([11,22,33]),{
+        status:200,headers:{'content-length':'3','content-type':'application/octet-stream'}
+      });
     if (url.hostname !== 'api.github.com') throw new Error('Unexpected upstream: ' + url);
     if (url.pathname === '/user') return sendJson({login:'vakulkumarmore'});
     const publicRepo = ['/repos/microsoft/PowerToys','/repos/langchain-ai/langchain'].includes(url.pathname);
@@ -51,6 +55,16 @@ test('404 from owner OAuth on public repo is distinguishable from missing repo',
     assert.equal(noAuthProbe.status,401);
 
     const headers = {cookie:'hub_session=' + session};
+    const unauthModel = await worker.fetch(new Request(origin + '/api/tts-model'), env);
+    assert.equal(unauthModel.status,401,'Model relay requires owner login');
+    const modelResponse = await worker.fetch(new Request(origin + '/api/tts-model',{
+      headers:{cookie:'hub_session=' + session}
+    }),env);
+    assert.equal(modelResponse.status,200,'Owner can stream the open-source voice model');
+    assert.equal(modelResponse.headers.get('content-type'),'application/octet-stream');
+    assert.deepEqual(Array.from(new Uint8Array(await modelResponse.arrayBuffer())),[11,22,33]);
+    assert.ok(!JSON.stringify([...modelResponse.headers]).includes('secret-for-test-only'));
+
     const access = await worker.fetch(new Request(origin + '/api/github-access', {headers}), env);
     assert.equal(access.status,200);
     const probe = await access.json();
