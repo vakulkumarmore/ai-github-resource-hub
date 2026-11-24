@@ -7,7 +7,7 @@ import { resourceKey } from './Importer';
 import { githubDetailsToResource, type GitHubDetails } from './resourceAnalysis';
 import { applyEnrichment, buildEnrichmentProposal, defaultEnrichmentOptions, type EnrichmentOptions } from './catalogEnrichment';
 
-type Props = { catalog: Resource[]; onApply: (next: Resource[], changeCount: number) => void };
+type Props = { catalog: Resource[]; onApply: (next: Resource[], changeCount: number) => void; onReconnect?: () => void };
 type Result = { url: string; suggestion?: Partial<Resource>; error?: string };
 type RunState = 'idle' | 'running' | 'paused' | 'complete';
 const ANALYSIS_CACHE_KEY = 'hub-analysis-results-v15';
@@ -41,7 +41,7 @@ async function lookupBatch(batch: Resource[], signal: AbortSignal): Promise<Resu
   });
 }
 
-export default function BulkAnalyzer({catalog, onApply}: Props) {
+export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
   const [results, setResults] = useState<Map<string, Result>>(readCachedResults);
   const resultsRef = useRef(results);
   const [state, setState] = useState<RunState>('idle');
@@ -110,11 +110,19 @@ export default function BulkAnalyzer({catalog, onApply}: Props) {
         updateResults(next);
         count += batch.length; requests += 1;
         if (mounted.current) { setCompleteCount(count); setBatchNumber(requests); }
-        // GitHub may return the rate-limit condition as per-resource errors.
-        if (returned.some(item => /rate limit|secondary limit|abuse|access restriction/i.test(item.error || ''))) {
+        // Older Worker deployments can reply with HTTP 200 and one error per URL
+        // even when the same GitHub token or upstream service has failed.
+        // Stop on a shared problem instead of making 120+ pointless requests.
+        const common = returned[0]?.error;
+        const allFailedTogether = !!common && returned.length === batch.length &&
+          returned.every(item => item.error === common) &&
+          /(?:http\s*401|http\s*403|unauthori[sz]ed|access restriction|rate limit|oauth|token|unable to reach github api|no result returned)/i.test(common);
+        if (allFailedTogether || returned.some(item => /rate limit|secondary limit|abuse|access restriction/i.test(item.error || ''))) {
           limitHit = true;
           setStoppedForLimit(true);
-          setMessage('GitHub reported a rate limit or access restriction. Analysis stopped; wait before retrying failed resources.');
+          setMessage(allFailedTogether
+            ? `Analysis stopped after ${requests} batch(es): every lookup failed with the same error, "${common}". These are NOT confirmed invalid repositories. Check GitHub sign-in, then retry.`
+            : 'GitHub reported a rate limit or access restriction. Analysis stopped; wait before retrying failed resources.');
           break;
         }
         if (offset + batchSize < work.length) await pause(1600, abort.signal);
@@ -141,6 +149,16 @@ export default function BulkAnalyzer({catalog, onApply}: Props) {
   const success = [...results.entries()].filter(([k, r]) => keys.has(k) && !!r.suggestion).length;
   const failures = [...results.entries()].filter(([k, r]) => keys.has(k) && !!r.error).length;
   const hasAnalyses = !!success || !!failures;
+  const errorBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    results.forEach((entry, key) => {
+      if (!keys.has(key) || !entry.error) return;
+      counts.set(entry.error, (counts.get(entry.error) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0, 4);
+  }, [results, keys]);
+  const needsReconnect = /(?:http\s*401|http\s*403|oauth|token|sign.in|reconnect|access restriction|authorization)/i.test(message) ||
+    errorBreakdown.some(([reason]) => /(?:http\s*401|http\s*403|oauth|token|unauthori[sz]ed)/i.test(reason));
   const showResults = filtered.slice(0, reviewLimit);
   const progress = targetCount ? Math.round((completeCount / targetCount) * 100) : 0;
 
@@ -188,6 +206,17 @@ export default function BulkAnalyzer({catalog, onApply}: Props) {
     </div>
     {targetCount > 0 && <div className="enrich-progress" aria-live="polite"><div className="enrich-progress-heading"><span>{state === 'running' ? 'Analyzing' : state === 'paused' ? 'Paused' : 'Batch finished'} · {completeCount} / {targetCount}</span><strong>{progress}%</strong></div><div className="enrich-track" role="progressbar" aria-valuemin={0} aria-valuemax={targetCount} aria-valuenow={completeCount}><span style={{width:`${progress}%`}}/></div><span>Batch {batchNumber} · {success} total succeeded · {failures} failed</span></div>}
     {message && <div className={`notice ${stoppedForLimit ? 'info-notice' : ''}`} role="status">{stoppedForLimit ? <AlertCircle size={16}/> : <CheckCircle2 size={16}/>} {message}</div>}
+    {(failures > 0 || needsReconnect) && <div className="notice info-notice" role="alert">
+      <AlertCircle size={18}/>
+      <div style={{flex:1}}>
+        <strong>Analysis failures are not proof these repositories are invalid.</strong>
+        {errorBreakdown.length > 0 && <div style={{marginTop:6}}>
+          {errorBreakdown.map(([reason, count]) => <div key={reason}>{count} failed: {reason}</div>)}
+        </div>}
+        {needsReconnect && <div style={{marginTop:6}}>Your GitHub authorization may need refreshing. Keep a backup of any unpublished draft before reconnecting.</div>}
+      </div>
+      {needsReconnect && onReconnect && <button type="button" className="btn subtle small" disabled={state === 'running'} onClick={onReconnect}>Reconnect GitHub</button>}
+    </div>}
     {hasAnalyses && <>
       <div className="enrich-review-header"><div><h3>Review suggestions</h3><p>{changed.length} resources would change · {chosen.length} selected · {success - changed.length} already complete</p></div><button className="btn primary" disabled={!chosen.length || state === 'running'} onClick={apply}><Check size={17}/> Apply {chosen.length} to draft <ArrowRight size={15}/></button></div>
       <div className="enrich-review-controls"><label className="search-box compact"><Search size={17}/><input placeholder="Search suggested changes" value={filter} onChange={e => {setFilter(e.target.value); setReviewLimit(25);}}/></label><button className="btn subtle small" onClick={() => setExcluded(new Set())}>Select all</button><button className="btn subtle small" onClick={() => setExcluded(new Set(changed.map(p => resourceKey(p.resource.url))))}>Select none</button></div>

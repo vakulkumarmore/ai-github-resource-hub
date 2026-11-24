@@ -367,7 +367,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     {tab === 'import' && <Importer catalog={draft} onApply={applyImported} onNavigate={() => setTab('resources')}/>}
 
     {/* Keep the analyzer mounted when navigating to Resources so batch progress and review aren't lost. */}
-    <div hidden={tab !== 'analyze'}><BulkAnalyzer catalog={draft} onApply={applyBulkEnrichment}/></div>
+    <div hidden={tab !== 'analyze'}><BulkAnalyzer catalog={draft} onApply={applyBulkEnrichment} onReconnect={() => navigateToAuth('login')}/></div>
 
     {tab === 'resources' && <div className="workspace-panel manager-panel">
       <div className="panel-top"><div><h2>Your catalog</h2><p>Search, edit or remove resources. New imports appear here immediately.</p></div><div className="action-row"><button className="btn subtle" onClick={() => setTab('analyze')}><Search size={17}/> Analyze all existing</button><button className="btn primary" onClick={() => setTab('import')}><Plus size={17}/> Add resources</button></div></div>
