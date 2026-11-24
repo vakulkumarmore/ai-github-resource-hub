@@ -189,6 +189,8 @@ def main():
                 'stars': data.get('stargazerCount'), 'forks': data.get('forkCount'),
                 'language': primary.get('name'), 'license': license_info.get('spdxId'),
                 'updatedAt': pushed_at or data.get('updatedAt'),
+                # GitHub archived projects stay discoverable but cannot accept new writes.
+                'archived': bool(data.get('isArchived')),
             }
             for field, value in update_fields.items():
                 if value is not None and resource.get(field) != value:

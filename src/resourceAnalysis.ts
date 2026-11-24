@@ -111,5 +111,6 @@ export function githubDetailsToResource(details: GitHubDetails, existing: {
     updatedAt: details.pushed_at || details.updated_at || undefined,
     homepage: details.homepage?.startsWith('https://') ? details.homepage : undefined,
     license: details.license?.spdx_id && details.license.spdx_id !== 'NOASSERTION' ? details.license.spdx_id : undefined,
+    ...(typeof details.archived === 'boolean' ? {archived: details.archived} : {}),
   };
 }

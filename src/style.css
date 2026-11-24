@@ -448,3 +448,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 .compare-notice{position:fixed;bottom:105px;left:25px;z-index:85;max-width:340px;background:var(--surface);color:var(--text);border:1px solid var(--border-strong);border-radius:10px;padding:12px 14px;box-shadow:0 12px 30px #0003;font-size:12px;display:flex;gap:10px;align-items:center}.compare-notice button{border:0;background:transparent;color:var(--secondary)}
+
+
+/* Archived GitHub repos remain available for browsing, but are read-only. */
+.repo-archived-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.repo-archived-badge svg { flex: 0 0 auto; }
+:root[data-theme='dark'] .repo-archived-badge {
+  background: #283244;
+  color: #d5dce7;
+  border-color: #536276;
+}

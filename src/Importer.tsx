@@ -17,6 +17,8 @@ export type Resource = {
   stars?: number;
   forks?: number;
   updatedAt?: string;
+  /** True when GitHub has archived the repository; it remains browseable but read-only. */
+  archived?: boolean;
   /** Optional manually chosen HTTPS project cover or logo URL. */
   imageUrl?: string;
   /** Short editorial summary displayed on public resource cards. */

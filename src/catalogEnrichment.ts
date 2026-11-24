@@ -25,14 +25,14 @@ export type EnrichmentProposal = {
 };
 
 const metadataFields: Array<keyof Resource> = [
-  'stars', 'forks', 'updatedAt', 'language', 'license', 'homepage',
+  'stars', 'forks', 'updatedAt', 'language', 'license', 'homepage', 'archived',
 ];
 const editorialFields: Array<keyof Resource> = [
   'description', 'category', 'oneLiner', 'tags', 'hashtags',
 ];
 const names: Record<string, string> = {
   stars: 'Stars', forks: 'Forks', updatedAt: 'Last updated', language: 'Language',
-  license: 'License', homepage: 'Project homepage', description: 'Description',
+  license: 'License', homepage: 'Project homepage', archived: 'GitHub archive status', description: 'Description',
   category: 'Category', oneLiner: 'One-line summary', tags: 'Topics / tags',
   hashtags: 'Hashtags',
 };
@@ -61,6 +61,9 @@ export function buildEnrichmentProposal(
   const changes: EnrichmentChange[] = [];
   const add = (field: keyof Resource, candidate: unknown) => {
     const current = original[field];
+    // Unknown is not "active". Don't suggest "false" for every previously
+    // unchecked repo, but do reflect true archived or newly unarchived status.
+    if (field === 'archived' && current !== true && candidate === false) return;
     if (isBlank(candidate) || equivalent(current, candidate)) return;
     (patch as Record<string, unknown>)[field] = candidate;
     changes.push({field, label: names[field] || field, before: format(current), after: format(candidate)});
