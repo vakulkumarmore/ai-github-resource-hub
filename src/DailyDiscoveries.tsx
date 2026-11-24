@@ -46,7 +46,6 @@ function toResource(r: Suggestion): Resource {
     id:r.fullName.toLowerCase().replace(/[^a-z0-9]+/g,'-'),
     url:r.url,
     type:'repository',
-    category,
     ...suggested,
   };
 }
