@@ -1,0 +1,7 @@
+.approval-workflow{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center;margin:14px 0;padding:16px 18px;border:1px solid var(--border, #d8dfea);border-radius:14px;background:var(--surface-secondary, #f7f9fc)}
+.approval-workflow strong{display:block;font-size:1rem;margin-bottom:5px}
+.approval-workflow p{margin:0 0 5px;font-size:.92rem;line-height:1.5}
+.approval-workflow small{color:var(--text-muted, #64748b);font-size:.81rem}
+.approval-actions{display:flex;gap:9px;flex-wrap:wrap}
+.approval-error{display:inline-block;padding:3px 7px;border-radius:7px;border:1px solid #e4ae6a;color:#a55e12;font-size:.75rem;font-weight:600}
+@media(max-width:650px){.approval-actions,.approval-actions button{width:100%}}
