@@ -24,6 +24,20 @@ export function makeIndividualVideo(r:Resource):VideoProject {
     {id:'outro',start:12,end:15,eyebrow:'EXPLORE THE REPOSITORY',heading:'Find it on GitHub',subtitle:clip(repo,95),detail:'AI GITHUB RESOURCE HUB'},
   ]};
 }
+/** A repeatable daily selection from the most recently active published repos.
+ *  This does not claim those repos were approved or created today. */
+export function autoPickRoundup(repos:Resource[],day:string):[Resource,Resource,Resource]|null{
+  const eligible=repos.filter(r=>r.type!=='profile' && /^https:\/\/github\.com\/[^/]+\/[^/]+\/?$/.test(r.url));
+  if(eligible.length<3)return null;
+  const top=[...eligible].sort((a,b)=>{
+    const at=Date.parse(a.updatedAt||'')||0,bt=Date.parse(b.updatedAt||'')||0;
+    return bt-at||(b.stars||0)-(a.stars||0)||a.name.localeCompare(b.name);
+  }).slice(0,40);
+  const date=Date.parse(day+'T00:00:00Z');
+  const index=Number.isFinite(date)?Math.floor(date/86400000)%top.length:0;
+  const rotated=[...top.slice(index),...top.slice(0,index)];
+  return [rotated[0],rotated[1],rotated[2]];
+}
 export function makeRoundupVideo(repos:[Resource,Resource,Resource]):VideoProject {
   const date=new Date().toISOString().slice(0,10);
   return {id:'roundup-'+date+'-'+repos.map(r=>slug(path(r))).join('-'),mode:'roundup',
