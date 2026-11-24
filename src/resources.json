@@ -36661,5 +36661,38 @@
     "updatedAt": "2026-11-23T09:08:26Z",
     "homepage": "https://dossier.aien.me",
     "license": "AGPL-3.0"
+  },
+  {
+    "id": "cathrynlavery-diagram-design",
+    "name": "diagram-design",
+    "url": "https://github.com/cathrynlavery/diagram-design",
+    "category": "Claude",
+    "description": "Editorial diagram design for Claude Code, Codex, GitHub Copilot, Cursor, Factory Droid, Qoder, and Pi. 52 diagram types. Self-contained HTML + SVG. No shadows. No Mermaid slop.",
+    "oneLiner": "Editorial diagram design for Claude Code, Codex, GitHub Copilot, Cursor, Factory Droid, Qoder, and Pi. 52 diagram types.",
+    "hashtags": [
+      "#ClaudeAI",
+      "#claudecode",
+      "#agentskills",
+      "#codex",
+      "#datavisualization",
+      "#diagrams"
+    ],
+    "tags": [
+      "agent-skills",
+      "claude-code",
+      "codex",
+      "data-visualization",
+      "diagrams",
+      "drawio",
+      "mermaid",
+      "svg"
+    ],
+    "type": "repository",
+    "language": "HTML",
+    "stars": 71812,
+    "forks": 4793,
+    "updatedAt": "2026-11-23T11:00:38Z",
+    "homepage": "https://diagramdesign.dev",
+    "license": "MIT"
   }
 ]
