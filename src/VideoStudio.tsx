@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, CheckCircle2, Download, Film, LoaderCircle, Pause, Play, Search, ShieldCheck, Sparkles, Video, X } from 'lucide-react';
 import { resourceKey, type Resource } from './Importer';
 import { autoPickRoundup, drawVideoFrame, makeIndividualVideo, makeRoundupVideo, renderVideoMp4, videoSignature, videoSrt, VIDEO_HEIGHT, VIDEO_SECONDS, VIDEO_WIDTH, type VideoProject, type VideoMode } from './videoStudioEngine';
-import { generateVideoSoundtrack, type VoiceOption } from './videoStudioAudio';
+import { generateVideoSoundtrack, type NarrationAdjustment, type VoiceOption } from './videoStudioAudio';
 import './videoStudio.css';
 
 type Props={publishedCatalog:Resource[]};
@@ -36,6 +36,7 @@ export default function VideoStudio({publishedCatalog}:Props){
   const [soundSignature,setSoundSignature]=useState('');
   const [audioProgress,setAudioProgress]=useState(0);
   const [audioStatus,setAudioStatus]=useState('');
+  const [narrationAdjustments,setNarrationAdjustments]=useState<NarrationAdjustment[]>([]);
   const audioContextRef=useRef<AudioContext|null>(null);
   const playbackRef=useRef<AudioBufferSourceNode|null>(null);
   const [progress,setProgress]=useState(0);
@@ -88,14 +89,17 @@ export default function VideoStudio({publishedCatalog}:Props){
   },[playing,project,audioReady,sound]);
 
   const toggle=(url:string)=>{
+    if(audioBusy||busy)return;
     const key=resourceKey(url);
     setSelected(prev=>prev.includes(key)?prev.filter(k=>k!==key):prev.length>=required?[...prev.slice(1),key]:[...prev,key]);
     setProject(null);setSound(null);setSoundSignature('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
   };
   const changeMode=(next:VideoMode)=>{
+    if(audioBusy||busy)return;
     setMode(next);setSelected([]);setProject(null);setSound(null);setSoundSignature('');setQuery('');setStatus('');setPlaying(false);current.current=0;setPosition(0);
   };
   const pickToday=()=>{
+    if(audioBusy||busy)return;
     const picked=autoPickRoundup(eligible,new Date().toISOString().slice(0,10));
     if(!picked){setStatus('At least three published repositories are required for a roundup.');return;}
     setSelected(picked.map(r=>resourceKey(r.url)));
@@ -103,38 +107,55 @@ export default function VideoStudio({publishedCatalog}:Props){
     setStatus('Selected three recently active published repositories for today. Review the selection before generating and approving the video.');
   };
   const create=()=>{
-    if(currentResources.length!==required)return;
+    if(audioBusy||busy||currentResources.length!==required)return;
     const next=mode==='individual'?makeIndividualVideo(currentResources[0]):makeRoundupVideo(currentResources as [Resource,Resource,Resource]);
     setProject(next);setSound(null);setSoundSignature('');setPosition(0);current.current=0;setPlaying(false);
     setStatus('Review the full details and complete GitHub links, edit spoken subtitles, then generate narrated audio and music before approval.');
   };
   const editScene=(index:number,field:'heading'|'subtitle'|'detail'|'extra',value:string)=>{
+    if(audioBusy||busy)return;
+    setNarrationAdjustments([]);
     setProject(old=>!old?null:{...old,scenes:old.scenes.map((s,i)=>i===index?{...s,[field]:value}:s)});
     setPlaying(false);setSound(null);setSoundSignature('');
     setStatus('Script edited. Regenerate narration and music, then approve again before exporting.');
   };
   const changeVoice=(next:VoiceOption)=>{
+    if(audioBusy||busy)return;
+    setNarrationAdjustments([]);
     setPlaying(false);setVoice(next);setSound(null);setSoundSignature('');
     setStatus('Voice changed. Regenerate audio and approve this version again.');
   };
   const changeMusic=(next:number)=>{
+    if(audioBusy||busy)return;
+    setNarrationAdjustments([]);
     setPlaying(false);setMusicLevel(next);setSound(null);setSoundSignature('');
     setStatus('Music level changed. Regenerate audio and approve this version again.');
   };
   const makeAudio=async()=>{
     if(!project||audioBusy||busy)return;
     setAudioBusy(true);setPlaying(false);setSound(null);setSoundSignature('');
+    setNarrationAdjustments([]);
     setAudioStatus('Preparing speech model…');setAudioProgress(0);
-    const key=signature;
     try{
       const output=await generateVideoSoundtrack(project,voice,musicLevel,(stage,percent)=>{
         setAudioStatus(stage);setAudioProgress(percent);
       },modelFile);
-      setSound(output);setSoundSignature(key);
-      setStatus('Narration and original background music are ready. Preview with audio, then approve the video.');
+      // Audio is synthesized for these *actual* captions. Always update the
+      // storyboard before setting the matching approval/export signature.
+      setProject(output.project);
+      setSound(output.audio);
+      setSoundSignature(videoSignature(output.project)+'|voice='+voice+'|music='+musicLevel);
+      setNarrationAdjustments(output.adjustments);
+      const count=output.adjustments.length;
+      setStatus(count
+        ? 'Narration ready. Automatically shortened '+count+' scene'+(count===1?'':'s')+' to fit. Review the updated subtitles and preview with audio, then approve this exact version before exporting.'
+        : 'Narration and original background music are ready. Preview with audio, then approve the video.');
     }catch(error){
-      setAudioStatus('Audio generation failed: '+(error instanceof Error?error.message:String(error)));
-      setStatus('Narration could not be generated. The specific error is shown above. Try the local model option below if downloads are restricted. The app will not export an MP4 without its audio.');
+      const message=error instanceof Error?error.message:String(error);
+      setAudioStatus('Audio generation failed: '+message);
+      setStatus(/download|model|runtime|HTTP|connect/i.test(message)
+        ? 'Speech model or runtime could not load. Check the specific error and optional local model below.'
+        : 'Speech could not fit the 15-second scene timeline. Review the detailed error and retry. No unmatched subtitles or partial audio are exported.');
     }finally{setAudioBusy(false);}
   };
   const approve=()=>{
@@ -199,7 +220,7 @@ export default function VideoStudio({publishedCatalog}:Props){
         <div className="video-studio-selection">
           {currentResources.map((r,i)=><span key={resourceKey(r.url)}>{mode==='roundup'?String(i+1)+'. ':''}{r.name}<button type="button" onClick={()=>toggle(r.url)} aria-label={'Remove '+r.name}><X size={12}/></button></span>)}
         </div>
-        <button type="button" className="btn primary" disabled={currentResources.length!==required||busy} onClick={create}>
+        <button type="button" className="btn primary" disabled={currentResources.length!==required||busy||audioBusy} onClick={create}>
           <Film size={17}/> {project?'Rebuild script from repository details':'Create video script'}
         </button>
 
@@ -210,11 +231,11 @@ export default function VideoStudio({publishedCatalog}:Props){
           </div>
           {project.scenes.map((scene,i)=><div className="video-scene-editor" key={scene.id}>
             <div className="video-scene-head"><strong>{scene.eyebrow}</strong><span>{scene.start}–{scene.end}s</span></div>
-            <label>On-screen headline<input maxLength={110} value={scene.heading} onChange={e=>editScene(i,'heading',e.target.value)}/></label>
-            <label>Spoken narration / synchronized subtitle<textarea rows={2} maxLength={160} value={scene.subtitle} onChange={e=>editScene(i,'subtitle',e.target.value)}/></label>
-            <small>Keep spoken words brief enough for the {scene.end-scene.start}-second scene. The exporter checks real voice duration.</small>
-            <label>Supporting label<input maxLength={110} value={scene.detail} onChange={e=>editScene(i,'detail',e.target.value)}/></label>
-            <label>Extended repository details shown in the video<textarea rows={3} maxLength={420} value={scene.extra||''} onChange={e=>editScene(i,'extra',e.target.value)}/></label>
+            <label>On-screen headline<input disabled={audioBusy||busy} maxLength={110} value={scene.heading} onChange={e=>editScene(i,'heading',e.target.value)}/></label>
+            <label>Spoken narration / synchronized subtitle<textarea disabled={audioBusy||busy} rows={2} maxLength={160} value={scene.subtitle} onChange={e=>editScene(i,'subtitle',e.target.value)}/></label>
+            <small>Speech is measured against the {scene.end-scene.start}-second scene. Long narration is automatically shortened and re-recorded; you'll review any changes before approval.</small>
+            <label>Supporting label<input disabled={audioBusy||busy} maxLength={110} value={scene.detail} onChange={e=>editScene(i,'detail',e.target.value)}/></label>
+            <label>Extended repository details shown in the video<textarea disabled={audioBusy||busy} rows={3} maxLength={420} value={scene.extra||''} onChange={e=>editScene(i,'extra',e.target.value)}/></label>
           </div>)}
           <div className="video-studio-audio">
             <div className="video-studio-section-head"><h3>3. Generate narration + background music</h3><span>Runs locally in your browser</span></div>
@@ -252,6 +273,13 @@ export default function VideoStudio({publishedCatalog}:Props){
             </button>
             {audioBusy&&<progress max={100} value={audioProgress} aria-label="Generating narration"/>}
             {audioStatus&&<p role="status">{audioStatus}</p>}
+            {narrationAdjustments.length>0&&<div className="video-studio-narration-adjustments">
+              <strong>Auto-adjusted spoken captions ({narrationAdjustments.length})</strong>
+              <p>To stay within the 15-second video, these lines were shortened or made instrumental. The full repository descriptions and URLs remain visible. Review the new script above before approving.</p>
+              <ul>{narrationAdjustments.map(change=><li key={change.sceneId}>
+                <b>{change.sceneId}:</b> <del>{change.from}</del> <span>→</span> <ins>{change.to||'Instrumental scene, no spoken subtitle'}</ins>
+              </li>)}</ul>
+            </div>
             <small>First use needs an approximately 87 MB open-source Phonon model. This version serves the MediaPipe runtime from your own site and tries a secure Cloudflare model download before attempting Hugging Face directly. Errors identify the failed download. Once loaded, speech synthesis and audio mixing run locally; there are no paid voice credits.</small>
           </div>
           <div className="video-studio-approval">
