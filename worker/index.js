@@ -27,6 +27,34 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
  if(path==='/api/logout')return redirect('/',{'set-cookie':cookie('hub_session','',0)});
  const session=await unseal(cs.hub_session||'',env.SESSION_SECRET);const owner=!!session&&session.exp>Date.now()&&session.login.toLowerCase()===env.OWNER_LOGIN.toLowerCase();
  if(path==='/api/me')return json({owner,login:owner?session.login:null});
+ // Private, fixed-origin pass-through for the open-source Phonon voice model.
+ // Fetch the 87 MB binary from Hugging Face on the Worker side and stream it,
+ // avoiding browser cross-origin requests and CSP/ad-blocker failures.
+ // IMPORTANT: never buffer the whole model in the Worker and never proxy a
+ // caller-provided URL. The model is not a GitHub user credential.
+ if(path==='/api/tts-model' && req.method==='GET'){
+   if(!owner)return json({error:'Owner sign-in required to download narration model'},401);
+   const upstreamUrl='https://huggingface.co/litert-community/phonon-31m-en/resolve/main/phonon_int8.litertlm';
+   let remote;
+   try{
+     remote=await fetch(upstreamUrl,{redirect:'follow',headers:{'user-agent':'ai-github-resource-hub-video-studio'}});
+   }catch(error){
+     console.warn('TTS model upstream request failed',String(error).slice(0,150));
+     return json({error:'Cloudflare could not reach the Phonon model host. Try the direct-download or local-model option.'},502);
+   }
+   if(!remote.ok||!remote.body){
+     return json({error:'Phonon model host returned HTTP '+remote.status+'. Try the direct-download or local-model option.',upstreamStatus:remote.status},502);
+   }
+   const headers=new Headers({
+     'content-type':'application/octet-stream',
+     'cache-control':'private, max-age=86400',
+     'x-content-type-options':'nosniff',
+   });
+   const length=remote.headers.get('content-length');
+   if(length&&/^\d+$/.test(length))headers.set('content-length',length);
+   return new Response(remote.body,{status:200,headers});
+ }
+
  // Owner-only access probe: compares one fixed, known-public repository.
  // No secrets, OAuth headers, or token contents are sent back to the browser.
  if(path==='/api/github-access'&&req.method==='GET'){
