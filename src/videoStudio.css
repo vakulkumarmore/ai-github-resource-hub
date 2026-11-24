@@ -77,3 +77,14 @@
 .video-studio-model-file small{font-size:11px;color:var(--secondary);line-height:1.55}
 .video-studio-model-file small a{color:var(--accent);text-decoration:underline}
 .video-studio-model-file .btn{justify-self:start}
+
+
+/* Automatically fitted voice lines must be reviewed before video approval. */
+.video-studio-narration-adjustments{margin:12px 0;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--surface)}
+.video-studio-narration-adjustments strong{font-size:12px;color:var(--text)}
+.video-studio-narration-adjustments p{font-size:11px;line-height:1.5;color:var(--secondary)}
+.video-studio-narration-adjustments ul{list-style:disc;padding-left:18px;margin:8px 0 0}
+.video-studio-narration-adjustments li{font-size:11px;line-height:1.6;margin:6px 0;color:var(--secondary)}
+.video-studio-narration-adjustments del{color:var(--muted);text-decoration:line-through}
+.video-studio-narration-adjustments ins{color:var(--text);text-decoration:none;font-weight:750}
+.video-studio-narration-adjustments li span{padding:0 4px}

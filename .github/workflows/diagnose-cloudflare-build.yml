@@ -37,5 +37,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_daily_discovery.py' -v
       - name: Check 15-second video scripts, subtitles and approval changes
         run: node --experimental-strip-types --test tests/video-studio.test.mjs
+      - name: Test automatic 15-second narration fitting and subtitle synchronization
+        run: node --experimental-strip-types --test tests/video-narration-fit.test.mjs
       - name: Build TypeScript and Vite
         run: npm run build

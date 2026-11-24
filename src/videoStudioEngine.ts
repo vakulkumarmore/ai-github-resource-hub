@@ -22,7 +22,7 @@ export function makeIndividualVideo(r:Resource):VideoProject {
   return {id:'repo-'+slug(repo),mode:'individual',title:name,selectedUrls:[full],scenes:[
     {id:'intro',start:0,end:3,eyebrow:'REPOSITORY SPOTLIGHT',heading:name,subtitle:spoken('Introducing '+name,6),detail:safeFact(r)||'OPEN SOURCE DISCOVERY',extra:summary(r),url:full},
     {id:'overview',start:3,end:8,eyebrow:'WHAT IT DOES',heading:'What it does',subtitle:spoken(r.oneLiner||r.description||'Explore this repository on GitHub',11),detail:name,extra:summary(r),url:full},
-    {id:'facts',start:8,end:12,eyebrow:'PROJECT DETAILS',heading:name,subtitle:spoken('Project details. '+[r.category,r.language].filter(Boolean).join('. '),7),detail:facts||'GitHub open-source project',extra:summary(r),url:full},
+    {id:'facts',start:8,end:12,eyebrow:'PROJECT DETAILS',heading:name,subtitle:spoken([r.category,r.language].filter(Boolean).join('. ')||'Project details',5),detail:facts||'GitHub open-source project',extra:summary(r),url:full},
     {id:'outro',start:12,end:15,eyebrow:'FULL GITHUB LINK',heading:'Explore the code',subtitle:'Open the full repository on GitHub.',detail:'SOURCE CODE • DOCUMENTATION',extra:summary(r),url:full},
   ]};
 }
@@ -141,7 +141,9 @@ const srtStamp=(time:number)=>{
   return '00:00:'+String(Math.floor(ms/1000)).padStart(2,'0')+','+String(ms%1000).padStart(3,'0');
 };
 export function videoSrt(project:VideoProject):string{
-  return project.scenes.map((s,i)=>String(i+1)+'\n'+srtStamp(s.start)+' --> '+srtStamp(s.end)+'\n'+s.subtitle.replace(/[\r\n]+/g,' ')+'\n').join('\n');
+  // An instrumental bumper has no speech, so it should not produce an
+  // empty subtitle cue in the downloadable SRT.
+  return project.scenes.filter(s=>s.subtitle.trim()).map((s,i)=>String(i+1)+'\n'+srtStamp(s.start)+' --> '+srtStamp(s.end)+'\n'+s.subtitle.replace(/[\r\n]+/g,' ')+'\n').join('\n');
 }
 export async function renderVideoMp4(project:VideoProject,audio:AudioBuffer,onProgress:(percent:number)=>void):Promise<Blob>{
   if(typeof window==='undefined'||!('VideoEncoder' in window)){
