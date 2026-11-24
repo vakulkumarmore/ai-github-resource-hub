@@ -222,8 +222,10 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
           batch.forEach(item => { failed[resourceKey(item.url)] = reason; });
         }
       }
-      setChecks(old => ({...old, ...passed}));
-      setCheckErrors(old => ({...old, ...failed}));
+      const targetKeys = new Set(targets.map(item => resourceKey(item.url)));
+      setChecks(old => ({...Object.fromEntries(Object.entries(old).filter(([k]) => !targetKeys.has(k))), ...passed}));
+      setApprovedKeys(old => old.filter(k => !targetKeys.has(k)));
+      setCheckErrors(old => ({...Object.fromEntries(Object.entries(old).filter(([k]) => !targetKeys.has(k))), ...failed}));
       setDraft(old => old.map(item => ({...item, ...(metadata.get(resourceKey(item.url)) || {})})));
       setMessage(`${Object.keys(passed).length} link(s) verified; ${Object.keys(failed).length} need attention. Review results, then approve the verified entries.`);
     } finally { setCheckingNew(false); }
