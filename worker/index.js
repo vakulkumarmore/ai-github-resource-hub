@@ -14,6 +14,8 @@ async function key(secret){return crypto.subtle.importKey('raw',await crypto.sub
 async function seal(obj,secret){const iv=crypto.getRandomValues(new Uint8Array(12));const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},await key(secret),enc.encode(JSON.stringify(obj)));return b64(iv)+'.'+b64(cipher);}
 async function unseal(token,secret){try{const [a,b]=token.split('.');const clear=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(a)},await key(secret),unb64(b));return JSON.parse(new TextDecoder().decode(clear));}catch{return null;}}
 const gh=(token)=>({'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'ai-github-resource-hub'});
+const publicGh=()=>({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'ai-github-resource-hub'});
+const metadataEndpoint=parts=>parts.length>1 ? `/repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}` : `/users/${encodeURIComponent(parts[0])}`;
 const redirect=(url,headers={})=>new Response(null,{status:302,headers:{location:url,...headers}});
 const redirectWithCookies=(url,values)=>{const headers=new Headers({location:url});for(const value of values)headers.append('Set-Cookie',value);return new Response(null,{status:302,headers});};
 export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pathname,cs=cookies(req);if(!path.startsWith('/api/'))return env.ASSETS.fetch(req);
@@ -25,6 +27,29 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
  if(path==='/api/logout')return redirect('/',{'set-cookie':cookie('hub_session','',0)});
  const session=await unseal(cs.hub_session||'',env.SESSION_SECRET);const owner=!!session&&session.exp>Date.now()&&session.login.toLowerCase()===env.OWNER_LOGIN.toLowerCase();
  if(path==='/api/me')return json({owner,login:owner?session.login:null});
+ // Owner-only access probe: compares one fixed, known-public repository.
+ // No secrets, OAuth headers, or token contents are sent back to the browser.
+ if(path==='/api/github-access'&&req.method==='GET'){
+   if(!owner)return json({error:'Owner sign-in required'},401);
+   const endpoint='https://api.github.com/repos/microsoft/PowerToys';
+   const check=async headers=>{
+     try{
+       const res=await fetch(endpoint,{headers});
+       return {status:res.status,rateLimitRemaining:res.headers.get('x-ratelimit-remaining')};
+     }catch{return {status:null,rateLimitRemaining:null,error:'GitHub connection failed'};}
+   };
+   const [authenticated,publicLookup]=await Promise.all([check(gh(session.token)),check(publicGh())]);
+   const oauthPublicMismatch=authenticated.status===404&&publicLookup.status===200;
+   return json({
+     probe:'microsoft/PowerToys',authenticated,publicLookup,oauthPublicMismatch,
+     meaning:oauthPublicMismatch
+       ? 'GitHub returned 404 for an OAuth-authenticated request to a known public repository, but returned 200 without the token. This indicates a problem with the token visibility or permissions, not the repository.'
+       : authenticated.status===200
+         ? 'Your OAuth token can read this known public repository. Check the specific links that failed.'
+         : 'The two statuses help distinguish GitHub API access, authorization and rate-limit failures.',
+     note:'No credentials or private data are included in this result.'
+   });
+ }
  // Authenticated metadata analysis for bulk GitHub imports. No access token is sent to the browser.
  if(path==='/api/analyze'&&req.method==='POST'){
    if(!owner)return json({error:'Sign in as the configured owner before analyzing repositories.'},401);
@@ -45,15 +70,28 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
      }catch{return json({error:'Every URL must be a GitHub repository or profile URL.'},400);}
    }
    const results=await Promise.all(parsed.map(async ({url:githubUrl,parts})=>{
-     const endpoint=parts.length>1 ? `/repos/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}` : `/users/${encodeURIComponent(parts[0])}`;
+     const endpoint=metadataEndpoint(parts);
      try{
-       const response=await fetch(`https://api.github.com${endpoint}`,{headers:gh(session.token)});
+       const upstream=`https://api.github.com${endpoint}`;
+       const authenticatedResponse=await fetch(upstream,{headers:gh(session.token)});
+       let response=authenticatedResponse;
+       let publicFallbackUsed=false;
+       // A GitHub OAuth token can have narrower visibility than anonymous
+       // public access. A 404 from the token is not proof the repo is missing.
+       if(authenticatedResponse.status===404){
+         response=await fetch(upstream,{headers:publicGh()});
+         publicFallbackUsed=response.ok;
+       }
        if(!response.ok){
-         const note=response.status===403?'GitHub rate limit or access restriction':response.status===404?'Repository or profile not found':`GitHub HTTP ${response.status}`;
+         const note=response.status===403?'GitHub rate limit or access restriction':
+           response.status===404?'Repository or profile not found (also checked public access)':
+           response.status===429?'GitHub API rate limit':
+           `GitHub HTTP ${response.status}`;
          return {url:githubUrl,error:note};
        }
        const data=await response.json();
        return {
+         publicFallbackUsed,
          url:githubUrl,
          name:data.name||parts.at(-1),
          description:data.description||null,
@@ -93,7 +131,7 @@ export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pat
        batchFailed:true, reasons
      },424);
    }
-   return json({results});
+   return json({results,publicFallbackUsed:results.some(item=>item.publicFallbackUsed===true)});
  }
  if(path==='/api/catalog'&&req.method==='GET'){const r=await fetch(`https://api.github.com/repos/${encodeURIComponent(env.OWNER_LOGIN)}/${encodeURIComponent(env.REPO_NAME)}/contents/src/resources.json`,{headers:{Accept:'application/vnd.github.raw+json','User-Agent':'ai-github-resource-hub'},cf:{cacheTtl:60}});if(!r.ok)return json({error:'Unable to load published catalog'},r.status);return new Response(await r.text(),{headers:{'content-type':'application/json','cache-control':'public,max-age=60'}});}
  if(path==='/api/catalog'&&req.method==='PUT'){
