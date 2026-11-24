@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "generatedAt": null,
+  "searchWindowDays": 60,
+  "methodology": "Recently created repositories ranked by average stars per day since creation; review-only.",
+  "queriesSucceeded": 0,
+  "queriesAttempted": 0,
+  "partial": false,
+  "failedTopics": [],
+  "candidates": []
+}
