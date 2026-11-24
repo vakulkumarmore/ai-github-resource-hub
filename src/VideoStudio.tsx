@@ -279,7 +279,7 @@ export default function VideoStudio({publishedCatalog}:Props){
               <ul>{narrationAdjustments.map(change=><li key={change.sceneId}>
                 <b>{change.sceneId}:</b> <del>{change.from}</del> <span>→</span> <ins>{change.to||'Instrumental scene, no spoken subtitle'}</ins>
               </li>)}</ul>
-            </div>
+            </div>}
             <small>First use needs an approximately 87 MB open-source Phonon model. This version serves the MediaPipe runtime from your own site and tries a secure Cloudflare model download before attempting Hugging Face directly. Errors identify the failed download. Once loaded, speech synthesis and audio mixing run locally; there are no paid voice credits.</small>
           </div>
           <div className="video-studio-approval">
