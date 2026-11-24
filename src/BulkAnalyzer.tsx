@@ -8,7 +8,7 @@ import { githubDetailsToResource, type GitHubDetails } from './resourceAnalysis'
 import { applyEnrichment, buildEnrichmentProposal, defaultEnrichmentOptions, type EnrichmentOptions } from './catalogEnrichment';
 
 type Props = { catalog: Resource[]; onApply: (next: Resource[], changeCount: number) => void; onReconnect?: () => void };
-type Result = { url: string; suggestion?: Partial<Resource>; error?: string };
+type Result = { url: string; suggestion?: Partial<Resource>; error?: string; publicFallbackUsed?: boolean };
 type RunState = 'idle' | 'running' | 'paused' | 'complete';
 const ANALYSIS_CACHE_KEY = 'hub-analysis-results-v15';
 const readCachedResults = (): Map<string, Result> => {
@@ -30,14 +30,14 @@ async function lookupBatch(batch: Resource[], signal: AbortSignal): Promise<Resu
     headers: {'content-type': 'application/json'},
     body: JSON.stringify({urls: batch.map(item => item.url)}),
   });
-  const body = await apiJson<{results: GitHubDetails[]}>(response, '/api/analyze');
+  const body = await apiJson<{results: GitHubDetails[]; publicFallbackUsed?: boolean}>(response, '/api/analyze');
   if (!Array.isArray(body.results)) throw new Error('The analysis service did not return a list of results.');
   const returned = new Map<string, GitHubDetails>(body.results.map((r: GitHubDetails) => [resourceKey(r.url), r]));
   return batch.map(resource => {
     const result = returned.get(resourceKey(resource.url));
     if (!result) return {url: resource.url, error: 'No result returned for this URL'};
     if (result.error) return {url: resource.url, error: result.error};
-    return {url: resource.url, suggestion: githubDetailsToResource(result, resource)};
+    return {url: resource.url, suggestion: githubDetailsToResource(result, resource), publicFallbackUsed: body.publicFallbackUsed === true};
   });
 }
 
@@ -114,13 +114,16 @@ export default function BulkAnalyzer({catalog, onApply, onReconnect}: Props) {
         // Stop after ANY entirely failed batch, regardless of message wording.
         const allFailed = returned.length === batch.length && returned.every(item => !!item.error);
         const rateLimited = returned.some(item => /rate limit|secondary limit|abuse|access restriction/i.test(item.error || ''));
-        if (allFailed || rateLimited) {
+        const fallbackUsed = returned.some(item => item.publicFallbackUsed === true);
+        if (allFailed || rateLimited || fallbackUsed) {
           limitHit = true;
           setStoppedForLimit(true);
           const reasons = [...new Set(returned.map(item => item.error).filter(Boolean))].slice(0, 3).join('; ');
           setMessage(allFailed
-            ? `Analysis stopped after ${requests} batch(es): all ${batch.length} GitHub lookups failed. Reasons: ${reasons}. These failures do not mean the repositories are invalid. Verify GitHub sign-in and check the Worker deployment.`
-            : 'GitHub reported a rate limit or access restriction. Analysis stopped; wait before retrying failed resources.');
+            ? `Analysis stopped after ${requests} batch(es): all ${batch.length} GitHub lookups failed. Reasons: ${reasons}. These failures do not mean the repositories are invalid.`
+            : fallbackUsed
+              ? 'This batch used public GitHub fallback because the owner OAuth token could not read some public repositories. Results are available for review, but the full scan was stopped to avoid anonymous API rate limits. Open /api/github-access to investigate. The scheduled repository health workflow already refreshes factual metadata across the catalog.'
+              : 'GitHub reported a rate limit or access restriction. Analysis stopped; wait before retrying failed resources.');
           break;
         }
         if (offset + batchSize < work.length) await pause(1600, abort.signal);
