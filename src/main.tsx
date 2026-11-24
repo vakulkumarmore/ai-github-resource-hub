@@ -1,7 +1,8 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowDownAZ, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, FilterX, Github, Grid2X2, Heart, LayoutList, LoaderCircle, Menu, Moon, Search, Shield, SlidersHorizontal, Sparkles, Star, Sun, X, ArrowUpRight, Clock3, Compass, TrendingUp, Lightbulb, RefreshCw, CalendarDays } from 'lucide-react';
+import { ArrowDownAZ, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ExternalLink, FilterX, Github, Grid2X2, Heart, LayoutList, LoaderCircle, Menu, Moon, Search, Shield, SlidersHorizontal, Sparkles, Star, Sun, X, ArrowUpRight, Clock3, Compass, TrendingUp, Lightbulb, RefreshCw, CalendarDays, Archive } from 'lucide-react';
 import resources from './resources.json';
+import healthReport from './repo-health.json';
 import { fetchMetadata, resourceKey, type Resource } from './Importer';
 import Admin from './Admin';
 import RepoVisual from './RepoVisual';
@@ -19,7 +20,13 @@ import './largeCatalog.css';
 type Sort = 'featured' | 'name' | 'category' | 'stars' | 'recent';
 type Freshness = 'all' | '30' | '90' | '365' | 'unknown';
 type View = 'list' | 'grid';
+type ArchiveFilter = 'all' | 'archived' | 'not-archived';
 const initialCatalog = resources as Resource[];
+// Daily GitHub GraphQL health checks provide archive status even before catalog
+// metadata is refreshed. A newer live /api/catalog archived value takes priority.
+const archivedFromHealth = new Set(healthReport.entries
+  .filter(entry => entry.status === 'checked' && entry.archived === true)
+  .map(entry => resourceKey(entry.url)));
 const DEFAULT_PAGE_SIZE = 24;
 const number = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}k` : String(n);
 const names = (url: string) => { const parts = new URL(url).pathname.split('/').filter(Boolean); return { owner: parts[0] || 'GitHub', repo: parts[1] || '' }; };
@@ -37,6 +44,7 @@ function App() {
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [freshness, setFreshness] = useState<Freshness>('all');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>('all');
   const [language, setLanguage] = useState('All languages');
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showGuide, setShowGuide] = useState<boolean>(() => !readJson('ai-hub-guide-dismissed-v21', false));
@@ -82,7 +90,20 @@ function App() {
     published.forEach(r => { if (r.language?.trim()) counts.set(r.language, (counts.get(r.language) || 0) + 1); });
     return [...counts.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [published]);
-  const catalog = useMemo(() => published.map(r => { const meta = stats[resourceKey(r.url)]; return meta ? { ...r, stars: meta.stars ?? r.stars, forks: meta.forks ?? r.forks, updatedAt: meta.updatedAt ?? r.updatedAt } : r; }), [published, stats]);
+  const catalog = useMemo(() => published.map(r => {
+    const key = resourceKey(r.url);
+    const meta = stats[key];
+    return {
+      ...r,
+      stars: meta?.stars ?? r.stars,
+      forks: meta?.forks ?? r.forks,
+      updatedAt: meta?.updatedAt ?? r.updatedAt,
+      // Do not assume "active" when status is unknown. Only render the archived
+      // badge for confirmed GitHub archived repositories, never for profiles.
+      archived: r.type === 'profile' ? false : (r.archived ?? archivedFromHealth.has(key)),
+    };
+  }), [published, stats]);
+  const archivedCount = useMemo(() => catalog.filter(r => r.archived === true).length, [catalog]);
   // Search over an indexed string per repository rather than rebuilding 1,000+ strings on every keystroke.
   const searchIndex = useMemo(() => {
     const index = new Map<string, string>();
@@ -104,6 +125,8 @@ function App() {
       if (selectedNeedUrls && !selectedNeedUrls.has(resourceKey(r.url))) return false;
       if (favoritesOnly && !(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))) return false;
       if (language !== 'All languages' && r.language !== language) return false;
+      if (archiveFilter === 'archived' && r.archived !== true) return false;
+      if (archiveFilter === 'not-archived' && r.archived === true) return false;
       if (activeHashtag && !resourceHashtags(r).some(tag => hashtagKey(tag) === activeHashtag)) return false;
       if (freshness === 'unknown' && safeUpdatedTime(r.updatedAt) !== null) return false;
       if (freshness !== 'all' && freshness !== 'unknown' && (r.type === 'profile' || !isUpdatedWithinDays(r.updatedAt, Number(freshness)))) return false;
@@ -116,7 +139,7 @@ function App() {
       if (sort === 'recent') return (safeUpdatedTime(b.updatedAt) ?? -1) - (safeUpdatedTime(a.updatedAt) ?? -1) || a.name.localeCompare(b.name);
       return 0;
     });
-  }, [catalog, category, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, language, searchIndex, selectedNeedUrls]);
+  }, [catalog, category, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, archiveFilter, language, searchIndex, selectedNeedUrls]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -163,7 +186,7 @@ function App() {
     setStatsNote(success < candidates.length ? `${success} updated. GitHub may be rate-limiting requests; try again later.` : `${success} repositories updated.`);
     setStatsBusy(false);
   };
-  const clearFilters = () => { setFilterNeed(null); chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setSort('featured'); setPage(1); };
+  const clearFilters = () => { setFilterNeed(null); chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setArchiveFilter('all'); setSort('featured'); setPage(1); };
   const browseNeed = (needId: string) => {
     setFilterNeed(needId); setCategory('All resources'); setSearch(''); setFreshness('all'); setLanguage('All languages'); setActiveHashtag(''); setFavoritesOnly(false); setSort('stars'); setPage(1);
     window.location.hash = '';
@@ -209,12 +232,13 @@ function App() {
           <div className="search-toolbar"><label className="search-box"><Search size={20}/><input placeholder={`Search ${published.length.toLocaleString()} resources by name, topic, category or language…`} value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label><button className="btn subtle mobile-filter-button" onClick={() => setMobileFilters(true)}><SlidersHorizontal size={17}/> Categories</button></div>
           <div className="advanced-filters" role="group" aria-label="Filter and sort repositories">
             <label><span><Clock3 size={14}/> Last GitHub activity</span><select value={freshness} onChange={e => { setFreshness(e.target.value as Freshness); setPage(1); }}><option value="all">Any date</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option><option value="unknown">Date unavailable</option></select></label>
+            <label><span><Archive size={14}/> Archive status</span><select value={archiveFilter} onChange={e => { setArchiveFilter(e.target.value as ArchiveFilter); setPage(1); }}><option value="all">All repositories</option><option value="archived">Archived only ({archivedCount})</option><option value="not-archived">Not marked archived</option></select></label>
             <label><span>Language</span><select value={language} onChange={e => { setLanguage(e.target.value); setPage(1); }}><option value="All languages">All languages</option>{languages.map(([lang, count]) => <option key={lang} value={lang}>{lang} ({count})</option>)}</select></label>
             <label><span><ArrowDownAZ size={14}/> Sort by</span><select value={sort} onChange={e => { setSort(e.target.value as Sort); setPage(1); }}><option value="featured">Curated order</option><option value="recent">Last updated (newest)</option><option value="stars">Most GitHub stars</option><option value="name">Name A–Z</option><option value="category">Category</option></select></label>
             <button type="button" className="filter-clear-action" onClick={clearFilters}><FilterX size={15}/> Clear filters</button>
           </div>
-          <div className="activity-context" role="status"><CalendarDays size={15}/><span>Last updated reflects GitHub activity when metadata was last analyzed, not when this hub added the link. Dates are available for <strong>{activityCounts.withDates.toLocaleString()}</strong> of {catalog.length.toLocaleString()} resources.</span></div>
-          <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {filterNeed && <span className="filter-chip">{activeNeedLabel}<button onClick={() => {setFilterNeed(null);setPage(1);}} aria-label="Clear selected use case"><X size={12}/></button></span>}{category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}{freshness !== 'all' && <span className="filter-chip">{freshness === 'unknown' ? 'Date unavailable' : `Updated in ${freshness} days`}<button onClick={() => setFreshness('all')} aria-label="Clear activity filter"><X size={12}/></button></span>}{language !== 'All languages' && <span className="filter-chip">{language}<button onClick={() => setLanguage('All languages')} aria-label="Clear language filter"><X size={12}/></button></span>}{activeHashtag && <span className="filter-chip">{activeHashtagLabel}<button onClick={() => { setActiveHashtag(''); setPage(1); }} aria-label="Clear hashtag filter"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Fill missing GitHub details</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
+          <div className="activity-context" role="status"><CalendarDays size={15}/><span>Last updated reflects GitHub activity when metadata was last analyzed, not when this hub added the link. Dates are available for <strong>{activityCounts.withDates.toLocaleString()}</strong> of {catalog.length.toLocaleString()} resources. <strong>{archivedCount.toLocaleString()}</strong> GitHub repositories are marked archived: their code and documentation remain available, but they are read-only.</span></div>
+          <div className="result-toolbar"><div className="result-count"><strong>{filtered.length.toLocaleString()}</strong> resources {filterNeed && <span className="filter-chip">{activeNeedLabel}<button onClick={() => {setFilterNeed(null);setPage(1);}} aria-label="Clear selected use case"><X size={12}/></button></span>}{category !== 'All resources' && <span className="filter-chip">{category}<button onClick={() => chooseCategory('All resources')} aria-label="Clear category"><X size={12}/></button></span>}{archiveFilter !== 'all' && <span className="filter-chip">{archiveFilter === 'archived' ? 'Archived only' : 'Not archived'}<button onClick={() => setArchiveFilter('all')} aria-label="Clear archive status filter"><X size={12}/></button></span>}{favoritesOnly && <span className="filter-chip">Favorites <button onClick={() => setFavoritesOnly(false)} aria-label="Clear favorites"><X size={12}/></button></span>}{freshness !== 'all' && <span className="filter-chip">{freshness === 'unknown' ? 'Date unavailable' : `Updated in ${freshness} days`}<button onClick={() => setFreshness('all')} aria-label="Clear activity filter"><X size={12}/></button></span>}{language !== 'All languages' && <span className="filter-chip">{language}<button onClick={() => setLanguage('All languages')} aria-label="Clear language filter"><X size={12}/></button></span>}{activeHashtag && <span className="filter-chip">{activeHashtagLabel}<button onClick={() => { setActiveHashtag(''); setPage(1); }} aria-label="Clear hashtag filter"><X size={12}/></button></span>}</div><div className="result-actions"><button className="stats-trigger" disabled={statsBusy || !visible.length} onClick={loadStats}>{statsBusy ? <LoaderCircle className="spin" size={15}/> : <Star size={15}/>} Fill missing GitHub details</button><div className="view-switch" role="group" aria-label="Display style"><button title="List view" aria-label="List view" aria-pressed={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><LayoutList size={18}/></button><button title="Grid view" aria-label="Grid view" aria-pressed={view === 'grid'} className={view === 'grid' ? 'active' : ''} onClick={() => setView('grid')}><Grid2X2 size={18}/></button></div></div></div>
           {statsNote && <div className="stats-note" role="status">{statsNote} <button onClick={() => setStatsNote('')} aria-label="Dismiss message"><X size={14}/></button></div>}
           <div className={`resource-results ${view === 'grid' ? 'grid-view' : 'list-view'}`}>{visible.map(r => <ResourceItem key={resourceKey(r.url)} resource={r} favorite={(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))} onToggle={() => toggleFavorite(r.url)} onTag={chooseHashtag} onCompare={() => toggleCompare(r.url)} compared={isCompared(r.url)} compareDisabled={comparedUrls.length >= 3 && !isCompared(r.url)}/>)}</div>
           {!filtered.length && <div className="empty-state"><FilterX size={33}/><h3>No resources found</h3><p>Try different keywords, clear your filters, or choose another category. If you filtered for recent updates, some repositories may not have an activity date yet.</p><button className="btn primary" onClick={clearFilters}>Clear all filters</button></div>}
@@ -265,6 +289,7 @@ function ResourceItem({ resource: r, favorite, onToggle, onTag, onCompare, compa
         <div className="resource-title-line">
           <a className="resource-name" href={r.url} target="_blank" rel="noopener noreferrer">{r.name}<ExternalLink size={14}/></a>
           <span className="category-tag">{r.category || 'Uncategorized'}</span>
+          {r.archived === true && r.type !== 'profile' && <span className="repo-archived-badge" title="Archived on GitHub: read-only, but code and documentation are still available."><Archive size={13} aria-hidden="true"/> Archived · Read-only</span>}
         </div>
         <div className="resource-path">{owner}{repo && <span> / {repo}</span>}</div>
         <p className="resource-description" title={r.oneLiner ? r.description : undefined}>{r.oneLiner || r.description}</p>
