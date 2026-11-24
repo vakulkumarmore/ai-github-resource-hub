@@ -22,7 +22,7 @@ export function makeIndividualVideo(r:Resource):VideoProject {
   return {id:'repo-'+slug(repo),mode:'individual',title:name,selectedUrls:[full],scenes:[
     {id:'intro',start:0,end:3,eyebrow:'REPOSITORY SPOTLIGHT',heading:name,subtitle:spoken('Introducing '+name,6),detail:safeFact(r)||'OPEN SOURCE DISCOVERY',extra:summary(r),url:full},
     {id:'overview',start:3,end:8,eyebrow:'WHAT IT DOES',heading:'What it does',subtitle:spoken(r.oneLiner||r.description||'Explore this repository on GitHub',11),detail:name,extra:summary(r),url:full},
-    {id:'facts',start:8,end:12,eyebrow:'PROJECT DETAILS',heading:name,subtitle:spoken('Project details. '+[r.category,r.language].filter(Boolean).join('. '),7),detail:facts||'GitHub open-source project',extra:summary(r),url:full},
+    {id:'facts',start:8,end:12,eyebrow:'PROJECT DETAILS',heading:name,subtitle:spoken([r.category,r.language].filter(Boolean).join('. ')||'Project details',5),detail:facts||'GitHub open-source project',extra:summary(r),url:full},
     {id:'outro',start:12,end:15,eyebrow:'FULL GITHUB LINK',heading:'Explore the code',subtitle:'Open the full repository on GitHub.',detail:'SOURCE CODE • DOCUMENTATION',extra:summary(r),url:full},
   ]};
 }
