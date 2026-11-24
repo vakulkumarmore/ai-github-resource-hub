@@ -23,7 +23,7 @@ test('trims quiet model padding while preserving a margin around spoken sound',(
   assert.ok(trimmed.samples.some(value=>value>.2));
 });
 test('rejects no-audio output from the speech model',()=>{
-  assert.throws(()=>trimSilence(makeClip(.5).samples.map(()=>0).length ? {samples:new Float32Array(8000),sampleRateHz:8000}:makeClip(.5)),/silent audio/);
+  assert.throws(()=>trimSilence({samples:new Float32Array(8000),sampleRateHz:8000}),/silent audio/);
 });
 test('scene 3 auto-fits 6.2-second speech into 3.8 seconds without truncating words',async()=>{
   const scene={id:'facts',start:8,end:12,subtitle:'Project details. AI Agents. TypeScript.'};
