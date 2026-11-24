@@ -90,7 +90,7 @@ function App() {
     published.forEach(r => { if (r.language?.trim()) counts.set(r.language, (counts.get(r.language) || 0) + 1); });
     return [...counts.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [published]);
-  const catalog = useMemo(() => published.map(r => {
+  const catalog = useMemo<Resource[]>(() => published.map(r => {
     const key = resourceKey(r.url);
     const meta = stats[key];
     return {
