@@ -1,0 +1,45 @@
+name: Daily GitHub repository health
+
+on:
+  schedule:
+    # UTC. Scheduled workflows may occasionally be delayed by GitHub.
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ai-hub-daily-health
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate repository health checks
+        run: python -m unittest discover -s tests -v
+      - name: Refresh metadata and maintenance review queue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/refresh_repo_health.py
+      - name: Commit automated factual metadata only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/resources.json src/repo-health.json
+          if git diff --cached --quiet; then
+            echo 'No changes.'
+            exit 0
+          fi
+          git commit -m 'chore: refresh GitHub metadata and health review'
+          # Never force-push. If the catalog changed during the scan, fail safely.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
