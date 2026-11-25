@@ -19,6 +19,16 @@ const metadataEndpoint=parts=>parts.length>1 ? `/repos/${encodeURIComponent(part
 const redirect=(url,headers={})=>new Response(null,{status:302,headers:{location:url,...headers}});
 const redirectWithCookies=(url,values)=>{const headers=new Headers({location:url});for(const value of values)headers.append('Set-Cookie',value);return new Response(null,{status:302,headers});};
 export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pathname,cs=cookies(req);if(!path.startsWith('/api/'))return env.ASSETS.fetch(req);
+ // Public review-only discovery report. Read directly from GitHub so new daily
+ // suggestions appear in Admin without requiring another Cloudflare deployment.
+ // No OAuth token, write permission, or arbitrary upstream URL is involved.
+ if(path==='/api/discoveries'&&req.method==='GET'){
+   if(!env.OWNER_LOGIN||!env.REPO_NAME)return json({error:'Discovery configuration incomplete'},503);
+   const reportUrl=`https://api.github.com/repos/${encodeURIComponent(env.OWNER_LOGIN)}/${encodeURIComponent(env.REPO_NAME)}/contents/src/daily-discoveries.json`;
+   const response=await fetch(reportUrl,{headers:{Accept:'application/vnd.github.raw+json','User-Agent':'ai-github-resource-hub-discoveries'},cf:{cacheTtl:60}});
+   if(!response.ok)return json({error:'Unable to load the latest GitHub discovery report'},response.status);
+   return new Response(await response.text(),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'public,max-age=60'}});
+ }
  // Branch previews are intentionally read-only. They never inherit production
  // OAuth credentials, nor can a preview accidentally publish catalog edits.
  if(env.PREVIEW_MODE==='true'){

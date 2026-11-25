@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CalendarClock, Check, CheckSquare2, ExternalLink, Github, RefreshCcw, Search, Sparkles, Star, TrendingUp, X } from 'lucide-react';
 import { categorize, githubDetailsToResource } from './resourceAnalysis';
 import { resourceKey, type Resource } from './Importer';
 import reportJSON from './daily-discoveries.json';
+import { apiJson } from './apiJson';
 import './dailyDiscoveries.css';
 
 type Suggestion = {
@@ -17,8 +18,7 @@ type Report = {
   queriesSucceeded: number; queriesAttempted: number; partial: boolean;
   failedTopics: Array<{topic: string; error: string}>; candidates: Suggestion[];
 };
-type Props = { catalog: Resource[]; onStage: (items: Resource[]) => void };
-const report = reportJSON as Report;
+type Props = { catalog: Resource[]; onStage: (items: Resource[]) => void; onCountChange?: (count: number) => void };
 const dismissedKey = 'ai-hub-dismissed-discoveries-v34';
 const readDismissed = (): string[] => {
   try { const value = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); return Array.isArray(value) ? value.filter(x => typeof x === 'string') : []; }
@@ -31,8 +31,6 @@ const formatDate = (value?: string | null) => {
 const categoryOf = (r: Suggestion) => categorize({
   name:r.name, description:r.description, topics:r.topics, url:r.url,
 });
-const isNewToday = (r: Suggestion) => !!report.generatedAt &&
-  r.firstSeenAt?.slice(0, 10) === report.generatedAt.slice(0, 10);
 
 function toResource(r: Suggestion): Resource {
   const category = categoryOf(r);
@@ -50,7 +48,35 @@ function toResource(r: Suggestion): Resource {
   };
 }
 
-export default function DailyDiscoveries({catalog,onStage}:Props) {
+export default function DailyDiscoveries({catalog,onStage,onCountChange}:Props) {
+  // Use the committed report immediately, then refresh from GitHub through
+  // the read-only Worker API. Discovery-only commits need no Vite redeploy.
+  const [report,setReport] = useState<Report>(reportJSON as Report);
+  const [refreshing,setRefreshing] = useState(false);
+  const [refreshError,setRefreshError] = useState('');
+  const [source,setSource] = useState<'bundled'|'live'>('bundled');
+  const loadLatest = async () => {
+    setRefreshing(true);
+    try {
+      const response = await fetch('/api/discoveries',{credentials:'same-origin',cache:'no-store'});
+      const data = await apiJson<Report>(response,'/api/discoveries');
+      if (!data || !Array.isArray(data.candidates) || data.candidates.length > 500 ||
+          typeof data.generatedAt !== 'string' || typeof data.queriesSucceeded !== 'number') {
+        throw new Error('GitHub returned an invalid discovery report.');
+      }
+      setReport(data);
+      setSource('live');
+      setRefreshError('');
+    } catch(error) {
+      // Retain the last working report, so an API outage cannot erase suggestions.
+      setRefreshError(error instanceof Error ? error.message : 'Unable to refresh discoveries.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  useEffect(() => { void loadLatest(); }, []);
+  const isNewToday = (r: Suggestion) => !!report.generatedAt &&
+    r.firstSeenAt?.slice(0,10) === report.generatedAt.slice(0,10);
   const [query,setQuery] = useState('');
   const [category,setCategory] = useState('all');
   const [sort,setSort] = useState<'pace'|'stars'|'new'>('pace');
@@ -60,7 +86,7 @@ export default function DailyDiscoveries({catalog,onStage}:Props) {
   const known = useMemo(() => new Set(catalog.map(item => resourceKey(item.url))),[catalog]);
   const unseen = useMemo(() => report.candidates.filter(item =>
     !known.has(resourceKey(item.url)) && !dismissed.includes(resourceKey(item.url))
-  ),[known,dismissed]);
+  ),[known,dismissed,report]);
   const categories = useMemo(() => [...new Set(unseen.map(categoryOf))].sort(),[unseen]);
   const filtered = useMemo(() => unseen.filter(item => {
     if (category !== 'all' && categoryOf(item) !== category) return false;
@@ -69,7 +95,7 @@ export default function DailyDiscoveries({catalog,onStage}:Props) {
   }).sort((a,b) => sort==='stars' ? b.stars-a.stars : sort==='new' ?
     b.firstSeenAt.localeCompare(a.firstSeenAt) || b.starsPerDay-a.starsPerDay :
     b.starsPerDay-a.starsPerDay || b.stars-a.stars),[unseen,category,query,sort]);
-  const visible = filtered.slice(0,showAll?80:24);
+  const visible = filtered.slice(0,showAll?80:10);
   const selectedItems = unseen.filter(item => selected.includes(resourceKey(item.url)));
   const selectVisible = (checked:boolean) => setSelected(prev => checked
     ? [...new Set([...prev,...visible.map(item => resourceKey(item.url))])]
@@ -90,19 +116,23 @@ export default function DailyDiscoveries({catalog,onStage}:Props) {
     setSelected([]);
   };
   const newToday = unseen.filter(isNewToday).length;
+  const hiddenDismissed = report.candidates.filter(item => !known.has(resourceKey(item.url)) && dismissed.includes(resourceKey(item.url))).length;
+  useEffect(() => { onCountChange?.(unseen.length); }, [unseen.length, onCountChange]);
   const selectedVisible = visible.length>0 && visible.every(item=>selected.includes(resourceKey(item.url)));
 
   return <section className="workspace-panel daily-discoveries">
     <div className="daily-discovery-head">
       <div><p className="daily-discovery-eyebrow"><TrendingUp size={16}/> DAILY GITHUB DISCOVERY</p>
-        <h2>Popular new repositories</h2>
+        <h2>New repositories awaiting your review</h2>
         <p>Fresh AI projects that are not in your catalog. Review the suggestions, then check and approve any you want to add.</p>
       </div>
-      <a className="btn subtle small" href="https://github.com/vakulkumarmore/ai-github-resource-hub/actions/workflows/daily-trending-discoveries.yml" target="_blank" rel="noopener noreferrer">
-        <RefreshCcw size={15}/> View or run daily search <ExternalLink size={13}/>
-      </a>
+      <div className="daily-discovery-head-actions">
+        <button type="button" className="btn subtle small" disabled={refreshing} onClick={() => void loadLatest()}><RefreshCcw size={15} className={refreshing ? 'spin' : ''}/>{refreshing ? 'Refreshing...' : 'Refresh new suggestions'}</button>
+        <a className="btn subtle small" href="https://github.com/vakulkumarmore/ai-github-resource-hub/actions/workflows/daily-trending-discoveries.yml" target="_blank" rel="noopener noreferrer">Run daily search <ExternalLink size={13}/></a>
+      </div>
     </div>
-    <div className="daily-discovery-info"><CalendarClock size={16}/> Last discovery: <strong>{formatDate(report.generatedAt)}</strong>
+    {refreshError && <div className="daily-discovery-refresh-warning" role="status">Showing the last available suggestions. Live refresh failed: {refreshError}</div>}
+    <div className="daily-discovery-info"><CalendarClock size={16}/> Last discovery: <strong>{formatDate(report.generatedAt)}</strong><span>· {source === 'live' ? 'Live GitHub report' : 'Bundled report'}</span>
       <span>· Looks back {report.searchWindowDays || 60} days</span>
       {report.partial && <span className="daily-discovery-warning">· Partial search, {report.queriesSucceeded}/{report.queriesAttempted} topics checked</span>}
     </div>
@@ -126,6 +156,7 @@ export default function DailyDiscoveries({catalog,onStage}:Props) {
       </select>
     </div>
     <div className="daily-discovery-actions">
+      {hiddenDismissed > 0 && <button type="button" className="btn subtle small" onClick={() => saveDismissed([])}>Restore {hiddenDismissed} dismissed</button>}
       <label><input type="checkbox" disabled={!visible.length} checked={selectedVisible} onChange={e=>selectVisible(e.target.checked)}/> Select visible ({visible.length})</label>
       <span>{filtered.length} matches · {selectedItems.length} selected</span>
       <button type="button" className="btn primary small" disabled={!selectedItems.length || selectedItems.length>25} onClick={stage}>
@@ -155,7 +186,7 @@ export default function DailyDiscoveries({catalog,onStage}:Props) {
       </article>)}
       {visible.length===0 && <div className="daily-discovery-empty">
         <CheckSquare2 size={24}/><strong>{!report.generatedAt?'The first daily search has not run yet.':'No unmatched discoveries in this view.'}</strong>
-        <p>{!report.generatedAt?'Use View or run daily search to run the GitHub Actions workflow. The results will appear after its report is committed and deployed.':'Try clearing your filters. Published and staged links are automatically excluded.'}</p>
+        <p>{!report.generatedAt?'Run the daily search from GitHub Actions, then choose Refresh new suggestions.':'Clear your filters or restore dismissed suggestions. Published and staged links are automatically excluded.'}</p>
       </div>}
     </div>
     {filtered.length>visible.length && <button type="button" className="btn subtle daily-discovery-more" onClick={()=>setShowAll(true)}>Show all {filtered.length} suggestions</button>}

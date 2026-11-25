@@ -53,3 +53,32 @@ test('diagnostics identifies a read-only preview',async()=>{
   assert.equal(info.environment,'preview');
   assert.equal(info.readOnly,true);
 });
+
+
+test('latest discovery suggestions are read-only and live in preview and production',async()=>{
+  const originalFetch=globalThis.fetch;
+  const expected='https://api.github.com/repos/vakulkumarmore/ai-github-resource-hub/contents/src/daily-discoveries.json';
+  const queries=[];
+  globalThis.fetch=async(input,init={})=>{
+    const url=String(input);
+    queries.push(url);
+    assert.equal(url,expected);
+    assert.equal(init.headers?.Authorization,undefined,'Discovery needs no OAuth credentials');
+    return new Response(JSON.stringify({generatedAt:'2026-11-25T00:00:00Z',queriesSucceeded:10,candidates:[{
+      url:'https://github.com/test/ai-skill',name:'ai-skill'
+    }]}),{status:200,headers:{'content-type':'application/json'}});
+  };
+  try{
+    const production={...previewEnv,PREVIEW_MODE:undefined,CLIENT_ID:'production-client',
+      CLIENT_SECRET:'test-secret',SESSION_SECRET:'test-session'};
+    for(const env of [previewEnv,production]){
+      const response=await worker.fetch(new Request(origin+'/api/discoveries'),env);
+      assert.equal(response.status,200,'Report should load from GitHub on either site');
+      assert.match(response.headers.get('content-type'),/application\/json/);
+      assert.equal((await response.json()).candidates.length,1);
+    }
+    assert.deepEqual(queries,[expected,expected]);
+    const denied=await worker.fetch(new Request(origin+'/api/discoveries',{method:'POST'}),previewEnv);
+    assert.equal(denied.status,403,'Preview cannot post to discovery endpoint');
+  }finally{globalThis.fetch=originalFetch;}
+});

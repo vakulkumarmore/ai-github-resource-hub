@@ -36,3 +36,9 @@
 .daily-discovery-more{margin:16px auto;display:block}
 .daily-discovery-footer{margin:16px 0 0;font-size:12px;color:var(--secondary);line-height:1.55}
 @media(max-width:680px){.daily-discovery-stats{gap:7px}.daily-discovery-stats>div{padding:10px}.daily-discovery-stats strong{font-size:20px}.daily-discovery-item{flex-wrap:wrap}.daily-discovery-item>.btn{margin-left:24px}.daily-discovery-actions>.btn{width:100%;justify-content:center}}
+
+/* Keep review visibility clear even before a suggestion is staged. */
+.daily-discovery-head-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.daily-discovery-refresh-warning{margin-top:14px;padding:11px 13px;border:1px solid var(--border-strong);border-radius:9px;color:var(--secondary);background:var(--surface-muted);font-size:12px;line-height:1.55}
+.review-queue-count{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:22px;padding:0 6px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:11px}
+@media(max-width:680px){.daily-discovery-head-actions{justify-content:flex-start;width:100%}}
