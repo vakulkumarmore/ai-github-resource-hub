@@ -16,6 +16,8 @@ import { apiJson } from './apiJson';
 import { daysSinceUpdated, isUpdatedWithinDays, readableUpdatedAt, safeUpdatedTime } from './discoveryUtils';
 import './style.css';
 import './largeCatalog.css';
+import './directoryRefresh.css';
+import { DIRECTORY_COLLECTIONS, matchesDirectoryCollection, type DirectoryCollection } from './directorySpotlights';
 
 type Sort = 'featured' | 'name' | 'category' | 'stars' | 'recent';
 type Freshness = 'all' | '30' | '90' | '365' | 'unknown';
@@ -42,11 +44,11 @@ function App() {
   const [filterNeed, setFilterNeed] = useState<string | null>(null);
   const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
   const [search, setSearch] = useState('');
+  const [collection, setCollection] = useState<DirectoryCollection>('all');
   const deferredSearch = useDeferredValue(search);
   const [freshness, setFreshness] = useState<Freshness>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>('all');
   const [language, setLanguage] = useState('All languages');
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [showGuide, setShowGuide] = useState<boolean>(() => !readJson('ai-hub-guide-dismissed-v21', false));
   const [pageSize, setPageSize] = useState<number>(() => { const stored = readJson<number>('ai-hub-page-size', DEFAULT_PAGE_SIZE); return [24,48,96].includes(stored) ? stored : DEFAULT_PAGE_SIZE; });
   const [category, setCategory] = useState('All resources');
@@ -57,7 +59,6 @@ function App() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(() => readJson('resource-hub-favorites', []));
   const [page, setPage] = useState(1);
-  const [mobileFilters, setMobileFilters] = useState(false);
   const [stats, setStats] = useState<Record<string, Partial<Resource>>>(() => readJson('ai-hub-metadata-cache', {}));
   const [statsBusy, setStatsBusy] = useState(false);
   const [statsNote, setStatsNote] = useState('');
@@ -79,6 +80,18 @@ function App() {
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('ai-hub-dark-mode', JSON.stringify(dark)); }, [dark]);
   useEffect(() => { localStorage.setItem('ai-hub-view', JSON.stringify(view)); }, [view]);
   useEffect(() => { localStorage.setItem('ai-hub-page-size', JSON.stringify(pageSize)); }, [pageSize]);
+  useEffect(() => {
+    if (screen !== 'library') return;
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        const input = document.getElementById('directory-hero-search') as HTMLInputElement | null;
+        input?.focus(); input?.select();
+      }
+    };
+    window.addEventListener('keydown', focusSearch);
+    return () => window.removeEventListener('keydown', focusSearch);
+  }, [screen]);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
     published.forEach(r => counts.set(r.category || 'Uncategorized', (counts.get(r.category || 'Uncategorized') || 0) + 1));
@@ -110,6 +123,12 @@ function App() {
     catalog.forEach(r => index.set(resourceKey(r.url), [r.name, r.url, r.description, r.oneLiner || '', r.category, r.language || '', ...(r.tags || []), ...resourceHashtags(r)].join(' ').toLowerCase()));
     return index;
   }, [catalog]);
+  const collectionCounts = useMemo(() => {
+    const result = {} as Record<DirectoryCollection, number>;
+    DIRECTORY_COLLECTIONS.forEach(({ id }) => { result[id] = catalog.filter(r => matchesDirectoryCollection(r, id)).length; });
+    return result;
+  }, [catalog]);
+  const favoriteCount = useMemo(() => catalog.filter(r => favorites.includes(resourceKey(r.url)) || favorites.includes(r.id)).length, [catalog, favorites]);
   const activityCounts = useMemo(() => ({
     recent30: catalog.filter(r => r.type !== 'profile' && isUpdatedWithinDays(r.updatedAt, 30)).length,
     withDates: catalog.filter(r => safeUpdatedTime(r.updatedAt) !== null).length,
@@ -122,6 +141,7 @@ function App() {
     const q = deferredSearch.toLowerCase().trim();
     return catalog.filter(r => {
       if (category !== 'All resources' && r.category !== category) return false;
+      if (!matchesDirectoryCollection(r, collection)) return false;
       if (selectedNeedUrls && !selectedNeedUrls.has(resourceKey(r.url))) return false;
       if (favoritesOnly && !(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))) return false;
       if (language !== 'All languages' && r.language !== language) return false;
@@ -139,14 +159,14 @@ function App() {
       if (sort === 'recent') return (safeUpdatedTime(b.updatedAt) ?? -1) - (safeUpdatedTime(a.updatedAt) ?? -1) || a.name.localeCompare(b.name);
       return 0;
     });
-  }, [catalog, category, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, archiveFilter, language, searchIndex, selectedNeedUrls]);
+  }, [catalog, category, collection, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, archiveFilter, language, searchIndex, selectedNeedUrls]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const chooseCategory = (value: string) => { setFilterNeed(null); setCategory(value); setPage(1); setMobileFilters(false); };
+  const chooseCategory = (value: string) => { setFilterNeed(null); setCategory(value); setPage(1); };
   const chooseSearch = (value: string) => { setSearch(value); setPage(1); };
-  const browseRecentlyUpdated = () => { setFilterNeed(null); setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
-  const startExploring = (term: string) => { setFilterNeed(null); chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const browseRecentlyUpdated = () => { setCollection('all'); setFilterNeed(null); setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const startExploring = (term: string) => { setCollection('all'); setFilterNeed(null); chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
   const dismissGuide = () => { setShowGuide(false); localStorage.setItem('ai-hub-guide-dismissed-v21','true'); };
   const chooseHashtag = (tag: string) => {
     setFilterNeed(null);
@@ -186,9 +206,14 @@ function App() {
     setStatsNote(success < candidates.length ? `${success} updated. GitHub may be rate-limiting requests; try again later.` : `${success} repositories updated.`);
     setStatsBusy(false);
   };
-  const clearFilters = () => { setFilterNeed(null); chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setArchiveFilter('all'); setSort('featured'); setPage(1); };
+  const clearFilters = () => { setCollection('all'); setFilterNeed(null); chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setArchiveFilter('all'); setSort('featured'); setPage(1); };
+  const chooseCollection = (next: DirectoryCollection) => {
+    setCollection(next); setFilterNeed(null); setCategory('All resources'); setSearch('');
+    setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages');
+    setFreshness('all'); setArchiveFilter('all'); setSort('featured'); setPage(1);
+  };
   const browseNeed = (needId: string) => {
-    setFilterNeed(needId); setCategory('All resources'); setSearch(''); setFreshness('all'); setLanguage('All languages'); setActiveHashtag(''); setFavoritesOnly(false); setSort('stars'); setPage(1);
+    setCollection('all'); setFilterNeed(needId); setCategory('All resources'); setSearch(''); setFreshness('all'); setLanguage('All languages'); setActiveHashtag(''); setFavoritesOnly(false); setSort('stars'); setPage(1);
     window.location.hash = '';
     setScreen('library');
     window.setTimeout(() => document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}), 40);
@@ -204,33 +229,43 @@ function App() {
     {catalogWarning && <div role="alert" className="notice" style={{margin:'12px auto',maxWidth:1100,padding:16}}><strong>Live catalog unavailable. Showing the bundled resource list.</strong><div>{catalogWarning}</div><div>Do not publish from an outdated catalog until the API is restored.</div></div>}
 
     {screen === 'library' ? <main className="public-main">
-      <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> THE OPEN SOURCE AI DIRECTORY</div><h1>Discover brilliant tools. <span>Build what’s next.</span></h1><p>Explore handpicked AI projects, developer tools, Claude resources and automation. Real repositories, useful context, and everything organized in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Visual repo previews</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div><div className="creator-credit"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More</strong></span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
-      <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} onCompare={toggleCompare} isCompared={isCompared} comparisonCount={comparedUrls.length} />
-      {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
-        <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
-        <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
-        <div className="guide-examples"><span>Try exploring</span><button onClick={() => startExploring('Claude')}>Claude tools</button><button onClick={() => startExploring('MCP')}>MCP servers</button><button onClick={() => startExploring('Automation')}>Automation</button><button onClick={browseRecentlyUpdated}>Recently updated <ArrowRight size={14}/></button></div>
-      </section>}
-      <section className="browse-section" id="browse"><div className="browse-header"><div><span className="section-eyebrow">DISCOVER & EXPLORE</span><h2>Resource library</h2><p>Browse visual repository previews, find the right tools, and bookmark your favorites.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} available resources`}</div></div>
-      {hashtagCounts.length > 0 && <section className="hashtag-discovery" aria-label="Browse popular hashtags">
-        <div className="hashtag-discovery-heading">
-          <div><span className="hashtag-eyebrow"><Sparkles size={15}/> DISCOVER BY TOPIC</span><h3>Explore hashtags</h3><p>Choose a topic to see matching repositories. Select it again to remove the filter.</p></div>
-          {activeHashtag && <button className="hashtag-clear" onClick={() => { setActiveHashtag(''); setPage(1); }}><X size={14}/> Clear hashtag</button>}
+      <section className="intro directory-hero" aria-labelledby="directory-title">
+        <div className="intro-copy">
+          <div className="eyebrow"><span className="directory-live-dot"/> CURATED OPEN-SOURCE AI DIRECTORY</div>
+          <h1 id="directory-title">Find the right GitHub tools for <span>what you want to build.</span></h1>
+          <p>Explore real GitHub repositories for Claude skills, MCP servers, ChatGPT, AI agents, automation, development and more. Search by name, task or technology to find your next useful project.</p>
+          <form className="directory-hero-search" onSubmit={event => { event.preventDefault(); document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' }); }} role="search">
+            <label htmlFor="directory-hero-search" className="directory-screen-reader">Search AI GitHub resources</label>
+            <Search size={22} aria-hidden="true"/>
+            <input id="directory-hero-search" type="search" value={search} onChange={event => chooseSearch(event.target.value)} placeholder="What do you want to build? Try Claude, MCP, video…" autoComplete="off"/>
+            <kbd aria-hidden="true">Ctrl / ⌘ K</kbd>
+            <button type="submit">Search <ArrowRight size={18}/></button>
+          </form>
+          <div className="directory-popular" aria-label="Popular searches"><span>Popular:</span>
+            <button type="button" onClick={() => { chooseCollection('claude'); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}>Claude skills</button>
+            <button type="button" onClick={() => { chooseCollection('mcp'); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}>MCP servers</button>
+            <button type="button" onClick={() => { chooseCollection('agents'); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}>AI agents</button>
+            <button type="button" onClick={() => startExploring('video')}>Video generation</button>
+            <button type="button" onClick={() => startExploring('security')}>Security</button>
+            <button type="button" onClick={() => startExploring('automation')}>Automation</button>
+          </div>
+          <div className="directory-hero-footer">
+            <div className="directory-metrics"><span><strong>{catalog.length.toLocaleString()}</strong> resources</span><span><strong>{categories.length.toLocaleString()}</strong> categories</span><button type="button" onClick={browseRecentlyUpdated}><strong>{activityCounts.recent30.toLocaleString()}</strong> recently updated <ArrowRight size={13}/></button></div>
+            <button type="button" className="creator-credit" onClick={openAbout} title="About the creator"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More <ArrowUpRight size={13}/></strong></span></button>
+          </div>
         </div>
-        <div className="hashtag-cloud">
-          {hashtagCounts.slice(0, showAllHashtags ? 48 : 12).map(({ tag, count }) =>
-            <button key={hashtagKey(tag)} type="button" className={`hashtag-pill ${activeHashtag === hashtagKey(tag) ? 'selected' : ''}`} aria-pressed={activeHashtag === hashtagKey(tag)} onClick={() => chooseHashtag(tag)}>
-              <span>{tag}</span><span className="hashtag-count">{count}</span>
-            </button>)}
-          {hashtagCounts.length > 12 && <button className="hashtag-toggle" type="button" onClick={() => setShowAllHashtags(value => !value)} aria-expanded={showAllHashtags}>{showAllHashtags ? 'Show fewer' : `Show top ${Math.min(48, hashtagCounts.length)} of ${hashtagCounts.length}` } <ChevronDown size={15} className={showAllHashtags ? 'hashtag-chevron-up' : ''}/></button>}
+      </section>
+      <section className="browse-section" id="browse">
+        <div className="browse-header"><div><span className="section-eyebrow">EXPLORE THE COLLECTION</span><h2>Browse the directory</h2><p>Choose a collection, narrow your results, and open the project on GitHub.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} published resources`}</div></div>
+        <div className="directory-collection-tabs" role="group" aria-label="Browse resource collections">
+          {DIRECTORY_COLLECTIONS.map(item => <button type="button" key={item.id} className={collection === item.id && !favoritesOnly ? 'active' : ''} aria-pressed={collection === item.id && !favoritesOnly} onClick={() => chooseCollection(item.id)}>{item.label}<span>{collectionCounts[item.id].toLocaleString()}</span></button>)}
+          <button type="button" className={favoritesOnly ? 'active' : ''} aria-pressed={favoritesOnly} onClick={() => { chooseCollection('all'); setFavoritesOnly(true); }}><Heart size={15}/> My favorites <span>{favoriteCount.toLocaleString()}</span></button>
         </div>
-      </section>}
       <div className="explore-layout">
-        <aside className={`category-sidebar ${mobileFilters ? 'open' : ''}`}><div className="sidebar-heading"><span>Categories</span><button className="mobile-close" onClick={() => setMobileFilters(false)} aria-label="Close filters"><X size={19}/></button></div><div className="category-list"><button className={category === 'All resources' && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory('All resources'); setFavoritesOnly(false); }}><BookOpen size={17}/><span>All resources</span><em>{published.length}</em></button><button className={favoritesOnly ? 'selected' : ''} onClick={() => { setFilterNeed(null); setFavoritesOnly(true); setCategory('All resources'); setPage(1); setMobileFilters(false); }}><Heart size={17}/><span>My favorites</span><em>{favorites.length}</em></button></div><div className="sidebar-divider"/><div className="category-list">{(showAllCategories || categories.length <= 12 ? categories : categories.slice(0, 12)).map(([name, count]) => <button key={name} className={category === name && !favoritesOnly ? 'selected' : ''} onClick={() => { chooseCategory(name); setFavoritesOnly(false); }}><span className="category-bullet"/><span title={name}>{name}</span><em>{count}</em></button>)}{categories.length > 12 && <button className="sidebar-more" onClick={() => setShowAllCategories(v => !v)} aria-expanded={showAllCategories}>{showAllCategories ? 'Show fewer categories' : `Show all ${categories.length} categories`} <ChevronDown size={15}/></button>}</div><div className="sidebar-note"><Sparkles size={17}/><strong>Made for discovery</strong><p>Save favorites and revisit them anytime on this device.</p></div></aside>
         <div className="browse-main">
-          <div className="discovery-shortcuts" role="group" aria-label="Quick discovery options"><span>Quick explore</span><button type="button" className={freshness === '30' ? 'active' : ''} onClick={browseRecentlyUpdated}><Clock3 size={14}/> Recently updated <em>{activityCounts.recent30}</em></button><button type="button" className={sort === 'stars' ? 'active' : ''} onClick={() => { setSort('stars'); setFreshness('all'); setPage(1); }}><TrendingUp size={14}/> Most starred</button><button type="button" onClick={() => startExploring('MCP')}><Compass size={14}/> MCP tools</button><button type="button" onClick={() => startExploring('agent')}><Sparkles size={14}/> AI agents</button></div>
-          <div className="search-toolbar"><label className="search-box"><Search size={20}/><input placeholder={`Search ${published.length.toLocaleString()} resources by name, topic, category or language…`} value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label><button className="btn subtle mobile-filter-button" onClick={() => setMobileFilters(true)}><SlidersHorizontal size={17}/> Categories</button></div>
+          <div className="search-toolbar"><label className="search-box"><Search size={20}/><input type="search" placeholder="Search within the directory by name, task, topic or language…" value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label></div>
           <div className="advanced-filters" role="group" aria-label="Filter and sort repositories">
+            <label><span><BookOpen size={14}/> Category</span><select aria-label="Filter by category" value={category} onChange={e => chooseCategory(e.target.value)}><option value="All resources">All categories</option>{categories.map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}</select></label>
             <label><span><Clock3 size={14}/> Last GitHub activity</span><select value={freshness} onChange={e => { setFreshness(e.target.value as Freshness); setPage(1); }}><option value="all">Any date</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option><option value="unknown">Date unavailable</option></select></label>
             <label><span><Archive size={14}/> Archive status</span><select value={archiveFilter} onChange={e => { setArchiveFilter(e.target.value as ArchiveFilter); setPage(1); }}><option value="all">All repositories</option><option value="archived">Archived only ({archivedCount})</option><option value="not-archived">Not marked archived</option></select></label>
             <label><span>Language</span><select value={language} onChange={e => { setLanguage(e.target.value); setPage(1); }}><option value="All languages">All languages</option>{languages.map(([lang, count]) => <option key={lang} value={lang}>{lang} ({count})</option>)}</select></label>
@@ -245,6 +280,25 @@ function App() {
           {!!filtered.length && <div className="pagination"><span>Showing <strong>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of {filtered.length.toLocaleString()}</span><div className="page-controls"><label className="page-size-control">Per page <select aria-label="Resources per page" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}><option value={24}>24</option><option value={48}>48</option><option value={96}>96</option></select></label><button className="btn subtle small" disabled={currentPage === 1} onClick={() => { setPage(p => p - 1); document.getElementById('browse')?.scrollIntoView(); }}><ArrowLeft size={15}/> Previous</button><span className="page-number">{currentPage} / {totalPages}</span><button className="btn subtle small" disabled={currentPage === totalPages} onClick={() => { setPage(p => p + 1); document.getElementById('browse')?.scrollIntoView(); }}>Next <ArrowRight size={15}/></button></div></div>}
         </div>
       </div></section>
+      {hashtagCounts.length > 0 && <section className="hashtag-discovery" aria-label="Browse popular hashtags">
+        <div className="hashtag-discovery-heading">
+          <div><span className="hashtag-eyebrow"><Sparkles size={15}/> DISCOVER BY TOPIC</span><h3>Explore hashtags</h3><p>Choose a topic to see matching repositories. Select it again to remove the filter.</p></div>
+          {activeHashtag && <button className="hashtag-clear" onClick={() => { setActiveHashtag(''); setPage(1); }}><X size={14}/> Clear hashtag</button>}
+        </div>
+        <div className="hashtag-cloud">
+          {hashtagCounts.slice(0, showAllHashtags ? 48 : 12).map(({ tag, count }) =>
+            <button key={hashtagKey(tag)} type="button" className={`hashtag-pill ${activeHashtag === hashtagKey(tag) ? 'selected' : ''}`} aria-pressed={activeHashtag === hashtagKey(tag)} onClick={() => chooseHashtag(tag)}>
+              <span>{tag}</span><span className="hashtag-count">{count}</span>
+            </button>)}
+          {hashtagCounts.length > 12 && <button className="hashtag-toggle" type="button" onClick={() => setShowAllHashtags(value => !value)} aria-expanded={showAllHashtags}>{showAllHashtags ? 'Show fewer' : `Show top ${Math.min(48, hashtagCounts.length)} of ${hashtagCounts.length}` } <ChevronDown size={15} className={showAllHashtags ? 'hashtag-chevron-up' : ''}/></button>}
+        </div>
+      </section>}
+      <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} onCompare={toggleCompare} isCompared={isCompared} comparisonCount={comparedUrls.length} />
+      {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
+        <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
+        <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
+        <div className="guide-examples"><span>Try exploring</span><button onClick={() => startExploring('Claude')}>Claude tools</button><button onClick={() => startExploring('MCP')}>MCP servers</button><button onClick={() => startExploring('Automation')}>Automation</button><button onClick={browseRecentlyUpdated}>Recently updated <ArrowRight size={14}/></button></div>
+      </section>}
     </main> : screen === 'about' ? <main className="about-page" id="about">
       <div className="about-page-inner">
         <button className="about-breadcrumb" onClick={openLibrary}><ArrowLeft size={16}/> Back to resources</button>
@@ -291,7 +345,7 @@ function ResourceItem({ resource: r, favorite, onToggle, onTag, onCompare, compa
           <span className="category-tag">{r.category || 'Uncategorized'}</span>
           {r.archived === true && r.type !== 'profile' && <span className="repo-archived-badge" title="Archived on GitHub: read-only, but code and documentation are still available."><Archive size={13} aria-hidden="true"/> Archived · Read-only</span>}
         </div>
-        <div className="resource-path">{owner}{repo && <span> / {repo}</span>}</div>
+        <div className="resource-path"><span>{owner}{repo && <span> / {repo}</span>}</span><a className="resource-full-url" href={r.url} target="_blank" rel="noopener noreferrer"><Github size={13}/>{r.url}<ArrowUpRight size={12}/></a></div>
         <p className="resource-description" title={r.oneLiner ? r.description : undefined}>{r.oneLiner || r.description}</p>
         <div className="resource-bottom">
           <div className="resource-tags">{resourceHashtags(r).slice(0, 4).map(tag => <button onClick={() => onTag(tag)} key={hashtagKey(tag)} title={`Filter by ${tag}`}>{tag}</button>)}</div>

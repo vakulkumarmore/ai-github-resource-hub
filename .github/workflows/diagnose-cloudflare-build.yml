@@ -26,6 +26,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Check Worker syntax
         run: node --check worker/index.js
+      - name: Verify preview is read-only and can serve the public catalog
+        run: node --test tests/worker-preview-read-only.test.mjs
       - name: Test GitHub metadata access fallback
         run: node --test tests/worker-analyze-public-fallback.test.mjs
       - uses: actions/setup-python@v5
@@ -39,5 +41,7 @@ jobs:
         run: node --experimental-strip-types --test tests/video-studio.test.mjs
       - name: Test automatic 15-second narration fitting and subtitle synchronization
         run: node --experimental-strip-types --test tests/video-narration-fit.test.mjs
+      - name: Test directory category matching and tabs
+        run: node --experimental-strip-types --test tests/directory-spotlights.test.mjs
       - name: Build TypeScript and Vite
         run: npm run build
