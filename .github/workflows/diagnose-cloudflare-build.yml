@@ -26,6 +26,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Check Worker syntax
         run: node --check worker/index.js
+      - name: Verify preview is read-only and can serve the public catalog
+        run: node --test tests/worker-preview-read-only.test.mjs
       - name: Test GitHub metadata access fallback
         run: node --test tests/worker-analyze-public-fallback.test.mjs
       - uses: actions/setup-python@v5
