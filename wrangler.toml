@@ -13,3 +13,12 @@ REPO_NAME = "ai-github-resource-hub"
 # CLIENT_ID is the GitHub OAuth App client ID (not a secret).
 CLIENT_ID = "Ov23liIyKoenFT4SGE5s"
 # Set CLIENT_SECRET and SESSION_SECRET with: npx wrangler secret put NAME
+
+# Pull-request previews intentionally have no OAuth credentials or write access.
+# They read only the existing public resource catalog from GitHub.
+# Never put CLIENT_SECRET or SESSION_SECRET here.
+[previews.vars]
+OWNER_LOGIN = "vakulkumarmore"
+REPO_NAME = "ai-github-resource-hub"
+CLIENT_ID = "preview-disabled"
+PREVIEW_MODE = "true"
