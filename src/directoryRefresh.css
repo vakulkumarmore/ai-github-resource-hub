@@ -137,3 +137,30 @@
  .visitor-guide{margin-left:14px;margin-right:14px}
 }
 @media(prefers-reduced-motion:reduce){.directory-popular button{transition:none}}
+
+
+/* Discovery-first homepage ordering:
+   browse collections -> choose a goal -> quick guide -> repository results. */
+.browse-overview{max-width:1220px;margin:0 auto;padding:48px 0 18px;scroll-margin-top:88px}
+.browse-overview .browse-header{margin-bottom:18px}
+.browse-overview .directory-collection-tabs{margin-bottom:0}
+.need-discovery{max-width:1220px;padding:20px 0 42px}
+.visitor-guide{max-width:1220px;margin:0 auto 10px}
+.browse-section{padding-top:42px}
+.browse-section .browse-header{margin-bottom:20px}
+@media(max-width:1280px){
+  .browse-overview{margin-left:25px;margin-right:25px}
+  .need-discovery{margin-left:25px;margin-right:25px}
+}
+@media(max-width:760px){
+  .browse-overview{padding:30px 0 13px}
+  .need-discovery{padding:15px 0 30px}
+  .browse-section{padding-top:30px}
+}
+@media(max-width:610px){
+  .browse-overview{margin:0;padding:28px 14px 12px}
+  .browse-overview .browse-header{margin-bottom:14px}
+  .need-discovery{margin:0;padding:12px 14px 28px}
+  .visitor-guide{margin:0 14px 10px}
+  .browse-section{padding-top:30px}
+}

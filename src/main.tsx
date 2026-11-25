@@ -49,7 +49,7 @@ function App() {
   const [freshness, setFreshness] = useState<Freshness>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>('all');
   const [language, setLanguage] = useState('All languages');
-  const [showGuide, setShowGuide] = useState<boolean>(() => !readJson('ai-hub-guide-dismissed-v21', false));
+  const [showGuide, setShowGuide] = useState<boolean>(() => !readJson('ai-hub-guide-dismissed-directory-v2', false));
   const [pageSize, setPageSize] = useState<number>(() => { const stored = readJson<number>('ai-hub-page-size', DEFAULT_PAGE_SIZE); return [24,48,96].includes(stored) ? stored : DEFAULT_PAGE_SIZE; });
   const [category, setCategory] = useState('All resources');
   const [activeHashtag, setActiveHashtag] = useState('');
@@ -167,7 +167,7 @@ function App() {
   const chooseSearch = (value: string) => { setSearch(value); setPage(1); };
   const browseRecentlyUpdated = () => { setCollection('all'); setFilterNeed(null); setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
   const startExploring = (term: string) => { setCollection('all'); setFilterNeed(null); chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
-  const dismissGuide = () => { setShowGuide(false); localStorage.setItem('ai-hub-guide-dismissed-v21','true'); };
+  const dismissGuide = () => { setShowGuide(false); localStorage.setItem('ai-hub-guide-dismissed-directory-v2','true'); };
   const chooseHashtag = (tag: string) => {
     setFilterNeed(null);
     const key = hashtagKey(tag);
@@ -255,12 +255,21 @@ function App() {
           </div>
         </div>
       </section>
-      <section className="browse-section" id="browse">
+      <section className="browse-overview" id="browse-directory" aria-label="Browse the directory">
         <div className="browse-header"><div><span className="section-eyebrow">EXPLORE THE COLLECTION</span><h2>Browse the directory</h2><p>Choose a collection, narrow your results, and open the project on GitHub.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} published resources`}</div></div>
         <div className="directory-collection-tabs" role="group" aria-label="Browse resource collections">
-          {DIRECTORY_COLLECTIONS.map(item => <button type="button" key={item.id} className={collection === item.id && !favoritesOnly ? 'active' : ''} aria-pressed={collection === item.id && !favoritesOnly} onClick={() => chooseCollection(item.id)}>{item.label}<span>{collectionCounts[item.id].toLocaleString()}</span></button>)}
-          <button type="button" className={favoritesOnly ? 'active' : ''} aria-pressed={favoritesOnly} onClick={() => { chooseCollection('all'); setFavoritesOnly(true); }}><Heart size={15}/> My favorites <span>{favoriteCount.toLocaleString()}</span></button>
+          {DIRECTORY_COLLECTIONS.map(item => <button type="button" key={item.id} className={collection === item.id && !favoritesOnly ? 'active' : ''} aria-pressed={collection === item.id && !favoritesOnly} onClick={() => { chooseCollection(item.id); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}>{item.label}<span>{collectionCounts[item.id].toLocaleString()}</span></button>)}
+          <button type="button" className={favoritesOnly ? 'active' : ''} aria-pressed={favoritesOnly} onClick={() => { chooseCollection('all'); setFavoritesOnly(true); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}><Heart size={15}/> My favorites <span>{favoriteCount.toLocaleString()}</span></button>
         </div>
+      </section>
+      <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} onCompare={toggleCompare} isCompared={isCompared} comparisonCount={comparedUrls.length} />
+      {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
+        <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
+        <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
+        <div className="guide-examples"><span>Try exploring</span><button onClick={() => startExploring('Claude')}>Claude tools</button><button onClick={() => startExploring('MCP')}>MCP servers</button><button onClick={() => startExploring('Automation')}>Automation</button><button onClick={browseRecentlyUpdated}>Recently updated <ArrowRight size={14}/></button></div>
+      </section>}
+      <section className="browse-section" id="browse" aria-labelledby="repository-list-title">
+        <div className="browse-header"><div><span className="section-eyebrow">THE RESOURCE LIBRARY</span><h2 id="repository-list-title">All repositories</h2><p>Search, filter and compare the published GitHub collection. Select any project to view its code and documentation.</p></div><div className="browse-summary"><span className="tiny-dot"/> {filtered.length.toLocaleString()} matching resources</div></div>
       <div className="explore-layout">
         <div className="browse-main">
           <div className="search-toolbar"><label className="search-box"><Search size={20}/><input type="search" placeholder="Search within the directory by name, task, topic or language…" value={search} onChange={e => chooseSearch(e.target.value)} aria-label="Search GitHub resources"/>{search && <button className="search-clear" onClick={() => chooseSearch('')} aria-label="Clear search"><X size={17}/></button>}</label></div>
@@ -279,8 +288,7 @@ function App() {
           {!filtered.length && <div className="empty-state"><FilterX size={33}/><h3>No resources found</h3><p>Try different keywords, clear your filters, or choose another category. If you filtered for recent updates, some repositories may not have an activity date yet.</p><button className="btn primary" onClick={clearFilters}>Clear all filters</button></div>}
           {!!filtered.length && <div className="pagination"><span>Showing <strong>{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)}</strong> of {filtered.length.toLocaleString()}</span><div className="page-controls"><label className="page-size-control">Per page <select aria-label="Resources per page" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}><option value={24}>24</option><option value={48}>48</option><option value={96}>96</option></select></label><button className="btn subtle small" disabled={currentPage === 1} onClick={() => { setPage(p => p - 1); document.getElementById('browse')?.scrollIntoView(); }}><ArrowLeft size={15}/> Previous</button><span className="page-number">{currentPage} / {totalPages}</span><button className="btn subtle small" disabled={currentPage === totalPages} onClick={() => { setPage(p => p + 1); document.getElementById('browse')?.scrollIntoView(); }}>Next <ArrowRight size={15}/></button></div></div>}
         </div>
-      </div></section>
-      {hashtagCounts.length > 0 && <section className="hashtag-discovery" aria-label="Browse popular hashtags">
+      </div></section>      {hashtagCounts.length > 0 && <section className="hashtag-discovery" aria-label="Browse popular hashtags">
         <div className="hashtag-discovery-heading">
           <div><span className="hashtag-eyebrow"><Sparkles size={15}/> DISCOVER BY TOPIC</span><h3>Explore hashtags</h3><p>Choose a topic to see matching repositories. Select it again to remove the filter.</p></div>
           {activeHashtag && <button className="hashtag-clear" onClick={() => { setActiveHashtag(''); setPage(1); }}><X size={14}/> Clear hashtag</button>}
@@ -292,12 +300,6 @@ function App() {
             </button>)}
           {hashtagCounts.length > 12 && <button className="hashtag-toggle" type="button" onClick={() => setShowAllHashtags(value => !value)} aria-expanded={showAllHashtags}>{showAllHashtags ? 'Show fewer' : `Show top ${Math.min(48, hashtagCounts.length)} of ${hashtagCounts.length}` } <ChevronDown size={15} className={showAllHashtags ? 'hashtag-chevron-up' : ''}/></button>}
         </div>
-      </section>}
-      <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} onCompare={toggleCompare} isCompared={isCompared} comparisonCount={comparedUrls.length} />
-      {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
-        <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
-        <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
-        <div className="guide-examples"><span>Try exploring</span><button onClick={() => startExploring('Claude')}>Claude tools</button><button onClick={() => startExploring('MCP')}>MCP servers</button><button onClick={() => startExploring('Automation')}>Automation</button><button onClick={browseRecentlyUpdated}>Recently updated <ArrowRight size={14}/></button></div>
       </section>}
     </main> : screen === 'about' ? <main className="about-page" id="about">
       <div className="about-page-inner">
