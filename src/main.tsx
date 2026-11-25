@@ -16,6 +16,8 @@ import { apiJson } from './apiJson';
 import { daysSinceUpdated, isUpdatedWithinDays, readableUpdatedAt, safeUpdatedTime } from './discoveryUtils';
 import './style.css';
 import './largeCatalog.css';
+import './directoryRefresh.css';
+import { DIRECTORY_COLLECTIONS, matchesDirectoryCollection, type DirectoryCollection } from './directorySpotlights';
 
 type Sort = 'featured' | 'name' | 'category' | 'stars' | 'recent';
 type Freshness = 'all' | '30' | '90' | '365' | 'unknown';
@@ -42,11 +44,11 @@ function App() {
   const [filterNeed, setFilterNeed] = useState<string | null>(null);
   const [dark, setDark] = useState<boolean>(() => readJson('ai-hub-dark-mode', false));
   const [search, setSearch] = useState('');
+  const [collection, setCollection] = useState<DirectoryCollection>('all');
   const deferredSearch = useDeferredValue(search);
   const [freshness, setFreshness] = useState<Freshness>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>('all');
   const [language, setLanguage] = useState('All languages');
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [showGuide, setShowGuide] = useState<boolean>(() => !readJson('ai-hub-guide-dismissed-v21', false));
   const [pageSize, setPageSize] = useState<number>(() => { const stored = readJson<number>('ai-hub-page-size', DEFAULT_PAGE_SIZE); return [24,48,96].includes(stored) ? stored : DEFAULT_PAGE_SIZE; });
   const [category, setCategory] = useState('All resources');
@@ -57,7 +59,6 @@ function App() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(() => readJson('resource-hub-favorites', []));
   const [page, setPage] = useState(1);
-  const [mobileFilters, setMobileFilters] = useState(false);
   const [stats, setStats] = useState<Record<string, Partial<Resource>>>(() => readJson('ai-hub-metadata-cache', {}));
   const [statsBusy, setStatsBusy] = useState(false);
   const [statsNote, setStatsNote] = useState('');
@@ -79,6 +80,18 @@ function App() {
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('ai-hub-dark-mode', JSON.stringify(dark)); }, [dark]);
   useEffect(() => { localStorage.setItem('ai-hub-view', JSON.stringify(view)); }, [view]);
   useEffect(() => { localStorage.setItem('ai-hub-page-size', JSON.stringify(pageSize)); }, [pageSize]);
+  useEffect(() => {
+    if (screen !== 'library') return;
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        const input = document.getElementById('directory-hero-search') as HTMLInputElement | null;
+        input?.focus(); input?.select();
+      }
+    };
+    window.addEventListener('keydown', focusSearch);
+    return () => window.removeEventListener('keydown', focusSearch);
+  }, [screen]);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
     published.forEach(r => counts.set(r.category || 'Uncategorized', (counts.get(r.category || 'Uncategorized') || 0) + 1));
@@ -110,6 +123,12 @@ function App() {
     catalog.forEach(r => index.set(resourceKey(r.url), [r.name, r.url, r.description, r.oneLiner || '', r.category, r.language || '', ...(r.tags || []), ...resourceHashtags(r)].join(' ').toLowerCase()));
     return index;
   }, [catalog]);
+  const collectionCounts = useMemo(() => {
+    const result = {} as Record<DirectoryCollection, number>;
+    DIRECTORY_COLLECTIONS.forEach(({ id }) => { result[id] = catalog.filter(r => matchesDirectoryCollection(r, id)).length; });
+    return result;
+  }, [catalog]);
+  const favoriteCount = useMemo(() => catalog.filter(r => favorites.includes(resourceKey(r.url)) || favorites.includes(r.id)).length, [catalog, favorites]);
   const activityCounts = useMemo(() => ({
     recent30: catalog.filter(r => r.type !== 'profile' && isUpdatedWithinDays(r.updatedAt, 30)).length,
     withDates: catalog.filter(r => safeUpdatedTime(r.updatedAt) !== null).length,
@@ -122,6 +141,7 @@ function App() {
     const q = deferredSearch.toLowerCase().trim();
     return catalog.filter(r => {
       if (category !== 'All resources' && r.category !== category) return false;
+      if (!matchesDirectoryCollection(r, collection)) return false;
       if (selectedNeedUrls && !selectedNeedUrls.has(resourceKey(r.url))) return false;
       if (favoritesOnly && !(favorites.includes(resourceKey(r.url)) || favorites.includes(r.id))) return false;
       if (language !== 'All languages' && r.language !== language) return false;
@@ -139,14 +159,14 @@ function App() {
       if (sort === 'recent') return (safeUpdatedTime(b.updatedAt) ?? -1) - (safeUpdatedTime(a.updatedAt) ?? -1) || a.name.localeCompare(b.name);
       return 0;
     });
-  }, [catalog, category, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, archiveFilter, language, searchIndex, selectedNeedUrls]);
+  }, [catalog, category, collection, activeHashtag, favoritesOnly, favorites, deferredSearch, sort, freshness, archiveFilter, language, searchIndex, selectedNeedUrls]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const chooseCategory = (value: string) => { setFilterNeed(null); setCategory(value); setPage(1); setMobileFilters(false); };
+  const chooseCategory = (value: string) => { setFilterNeed(null); setCategory(value); setPage(1); };
   const chooseSearch = (value: string) => { setSearch(value); setPage(1); };
-  const browseRecentlyUpdated = () => { setFilterNeed(null); setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
-  const startExploring = (term: string) => { setFilterNeed(null); chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const browseRecentlyUpdated = () => { setCollection('all'); setFilterNeed(null); setFreshness('30'); setSort('recent'); setCategory('All resources'); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setSearch(''); setPage(1); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
+  const startExploring = (term: string) => { setCollection('all'); setFilterNeed(null); chooseSearch(term); setCategory('All resources'); setFreshness('all'); setLanguage('All languages'); setFavoritesOnly(false); setActiveHashtag(''); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); };
   const dismissGuide = () => { setShowGuide(false); localStorage.setItem('ai-hub-guide-dismissed-v21','true'); };
   const chooseHashtag = (tag: string) => {
     setFilterNeed(null);
@@ -186,9 +206,14 @@ function App() {
     setStatsNote(success < candidates.length ? `${success} updated. GitHub may be rate-limiting requests; try again later.` : `${success} repositories updated.`);
     setStatsBusy(false);
   };
-  const clearFilters = () => { setFilterNeed(null); chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setArchiveFilter('all'); setSort('featured'); setPage(1); };
+  const clearFilters = () => { setCollection('all'); setFilterNeed(null); chooseCategory('All resources'); chooseSearch(''); setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages'); setFreshness('all'); setArchiveFilter('all'); setSort('featured'); setPage(1); };
+  const chooseCollection = (next: DirectoryCollection) => {
+    setCollection(next); setFilterNeed(null); setCategory('All resources'); setSearch('');
+    setFavoritesOnly(false); setActiveHashtag(''); setLanguage('All languages');
+    setFreshness('all'); setArchiveFilter('all'); setSort('featured'); setPage(1);
+  };
   const browseNeed = (needId: string) => {
-    setFilterNeed(needId); setCategory('All resources'); setSearch(''); setFreshness('all'); setLanguage('All languages'); setActiveHashtag(''); setFavoritesOnly(false); setSort('stars'); setPage(1);
+    setCollection('all'); setFilterNeed(needId); setCategory('All resources'); setSearch(''); setFreshness('all'); setLanguage('All languages'); setActiveHashtag(''); setFavoritesOnly(false); setSort('stars'); setPage(1);
     window.location.hash = '';
     setScreen('library');
     window.setTimeout(() => document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}), 40);
