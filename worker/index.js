@@ -19,6 +19,20 @@ const metadataEndpoint=parts=>parts.length>1 ? `/repos/${encodeURIComponent(part
 const redirect=(url,headers={})=>new Response(null,{status:302,headers:{location:url,...headers}});
 const redirectWithCookies=(url,values)=>{const headers=new Headers({location:url});for(const value of values)headers.append('Set-Cookie',value);return new Response(null,{status:302,headers});};
 export default {async fetch(req,env){try{const url=new URL(req.url),path=url.pathname,cs=cookies(req);if(!path.startsWith('/api/'))return env.ASSETS.fetch(req);
+ // Branch previews are intentionally read-only. They never inherit production
+ // OAuth credentials, nor can a preview accidentally publish catalog edits.
+ if(env.PREVIEW_MODE==='true'){
+   if(path==='/api/catalog'&&req.method==='GET'){
+     if(!env.OWNER_LOGIN||!env.REPO_NAME)return json({error:'Preview catalog configuration incomplete'},503);
+     const catalogUrl=`https://api.github.com/repos/${encodeURIComponent(env.OWNER_LOGIN)}/${encodeURIComponent(env.REPO_NAME)}/contents/src/resources.json`;
+     const result=await fetch(catalogUrl,{headers:{Accept:'application/vnd.github.raw+json','User-Agent':'ai-github-resource-hub-preview'},cf:{cacheTtl:60}});
+     if(!result.ok)return json({error:'Unable to load the public resource catalog'},result.status);
+     return new Response(await result.text(),{headers:{'content-type':'application/json','cache-control':'public,max-age=60'}});
+   }
+   if(path==='/api/me'&&req.method==='GET')return json({owner:false,login:null});
+   if(path==='/api/diagnostics'&&req.method==='GET')return json({service:'ai-github-resource-hub',environment:'preview',apiRoutesActive:true,readOnly:true});
+   return json({error:'This preview is read-only; admin sign-in and publishing are disabled.'},403);
+ }
  if(!env.CLIENT_ID||!env.CLIENT_SECRET||!env.SESSION_SECRET||!env.OWNER_LOGIN||!env.REPO_NAME)return json({error:'Server configuration incomplete'},503);
  // Public, non-sensitive build marker to detect a stale or wrong Cloudflare deployment.
  if(path==='/api/diagnostics'&&req.method==='GET')return json({service:'ai-github-resource-hub',version:'v29-analyzer-diagnostics',workerOrigin:url.origin,apiRoutesActive:true});
