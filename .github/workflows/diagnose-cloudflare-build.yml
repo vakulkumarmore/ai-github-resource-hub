@@ -39,5 +39,7 @@ jobs:
         run: node --experimental-strip-types --test tests/video-studio.test.mjs
       - name: Test automatic 15-second narration fitting and subtitle synchronization
         run: node --experimental-strip-types --test tests/video-narration-fit.test.mjs
+      - name: Test directory category matching and tabs
+        run: node --experimental-strip-types --test tests/directory-spotlights.test.mjs
       - name: Build TypeScript and Vite
         run: npm run build
