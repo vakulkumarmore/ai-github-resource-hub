@@ -164,3 +164,19 @@
   .visitor-guide{margin:0 14px 10px}
   .browse-section{padding-top:30px}
 }
+
+
+/* Keep directory search and filters together with its collection tabs. */
+.browse-overview .directory-filter-panel{margin-top:18px}
+.browse-overview .search-toolbar{margin-bottom:12px}
+.browse-overview .advanced-filters{margin-bottom:0}
+.directory-filter-footer{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-top:12px;padding:0 4px;color:var(--secondary);font-size:12px}
+.directory-filter-footer strong{color:var(--text)}
+.directory-filter-footer button{display:inline-flex;align-items:center;gap:9px;border:0;border-radius:9px;background:var(--accent);color:var(--on-accent);font-weight:750;font-size:12px;padding:11px 15px}
+.directory-filter-footer button:hover{background:var(--accent-hover)}
+.page-size-caption{color:var(--secondary);font-size:11px;white-space:nowrap}
+@media(max-width:610px){
+ .browse-overview .directory-filter-panel{margin-top:13px}
+ .directory-filter-footer{align-items:stretch;flex-direction:column;gap:10px;padding:0}
+ .directory-filter-footer button{justify-content:center}
+}
