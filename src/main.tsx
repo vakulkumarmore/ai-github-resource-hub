@@ -229,14 +229,44 @@ function App() {
     {catalogWarning && <div role="alert" className="notice" style={{margin:'12px auto',maxWidth:1100,padding:16}}><strong>Live catalog unavailable. Showing the bundled resource list.</strong><div>{catalogWarning}</div><div>Do not publish from an outdated catalog until the API is restored.</div></div>}
 
     {screen === 'library' ? <main className="public-main">
-      <section className="intro"><div className="intro-copy"><div className="eyebrow"><Sparkles size={14}/> THE OPEN SOURCE AI DIRECTORY</div><h1>Discover brilliant tools. <span>Build what’s next.</span></h1><p>Explore handpicked AI projects, developer tools, Claude resources and automation. Real repositories, useful context, and everything organized in one place.</p><div className="intro-highlights"><span><CheckCircle2 size={16}/> Visual repo previews</span><span><CheckCircle2 size={16}/> Easy to explore</span><span><CheckCircle2 size={16}/> Always growing</span></div><div className="creator-credit"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More</strong></span></div></div><div className="intro-aside"><div className="aside-icon"><BookOpen size={22}/></div><span className="aside-caption">EXPLORE THE COLLECTION</span><strong>{published.length.toLocaleString()}</strong><span className="aside-caption">resources across {categories.length} categories</span><button onClick={() => document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' })}>Browse all resources <ArrowRight size={16}/></button></div></section>
+      <section className="intro directory-hero" aria-labelledby="directory-title">
+        <div className="intro-copy">
+          <div className="eyebrow"><span className="directory-live-dot"/> CURATED OPEN-SOURCE AI DIRECTORY</div>
+          <h1 id="directory-title">Find the right GitHub tools for <span>what you want to build.</span></h1>
+          <p>Explore real GitHub repositories for Claude skills, MCP servers, ChatGPT, AI agents, automation, development and more. Search by name, task or technology to find your next useful project.</p>
+          <form className="directory-hero-search" onSubmit={event => { event.preventDefault(); document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' }); }} role="search">
+            <label htmlFor="directory-hero-search" className="directory-screen-reader">Search AI GitHub resources</label>
+            <Search size={22} aria-hidden="true"/>
+            <input id="directory-hero-search" type="search" value={search} onChange={event => chooseSearch(event.target.value)} placeholder="What do you want to build? Try Claude, MCP, video…" autoComplete="off"/>
+            <kbd aria-hidden="true">Ctrl / ⌘ K</kbd>
+            <button type="submit">Search <ArrowRight size={18}/></button>
+          </form>
+          <div className="directory-popular" aria-label="Popular searches"><span>Popular:</span>
+            <button type="button" onClick={() => { chooseCollection('claude'); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}>Claude skills</button>
+            <button type="button" onClick={() => { chooseCollection('mcp'); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}>MCP servers</button>
+            <button type="button" onClick={() => { chooseCollection('agents'); document.getElementById('browse')?.scrollIntoView({behavior:'smooth'}); }}>AI agents</button>
+            <button type="button" onClick={() => startExploring('video')}>Video generation</button>
+            <button type="button" onClick={() => startExploring('security')}>Security</button>
+            <button type="button" onClick={() => startExploring('automation')}>Automation</button>
+          </div>
+          <div className="directory-hero-footer">
+            <div className="directory-metrics"><span><strong>{catalog.length.toLocaleString()}</strong> resources</span><span><strong>{categories.length.toLocaleString()}</strong> categories</span><button type="button" onClick={browseRecentlyUpdated}><strong>{activityCounts.recent30.toLocaleString()}</strong> recently updated <ArrowRight size={13}/></button></div>
+            <button type="button" className="creator-credit" onClick={openAbout} title="About the creator"><span className="creator-avatar" aria-hidden="true">VM</span><span className="creator-copy"><span>Created &amp; curated by</span><strong className="creator-name">Vakul Kumar More <ArrowUpRight size={13}/></strong></span></button>
+          </div>
+        </div>
+      </section>
       <NeedDiscovery resources={catalog} activeNeedId={filterNeed} onShowAll={browseNeed} onAsk={() => setAssistantOpen(true)} onCompare={toggleCompare} isCompared={isCompared} comparisonCount={comparedUrls.length} />
       {showGuide && <section className="visitor-guide" aria-label="How to use the GitHub Resource Hub">
         <div className="visitor-guide-head"><div><span className="guide-eyebrow"><Lightbulb size={15}/> FIRST TIME HERE?</span><h2>Find a useful project in three steps</h2><p>You don't need to know GitHub to explore this collection.</p></div><button className="icon-button" title="Dismiss introduction" aria-label="Dismiss introduction" onClick={dismissGuide}><X size={18}/></button></div>
         <div className="guide-steps"><div><span className="guide-number">1</span><strong>Search or choose a topic</strong><p>Look for an AI tool, a language or an area you're curious about.</p></div><div><span className="guide-number">2</span><strong>Compare the projects</strong><p>Read the one-line summary and check stars and last activity where available.</p></div><div><span className="guide-number">3</span><strong>Open on GitHub</strong><p>Click View repo to explore the project's README, code and setup instructions.</p></div></div>
         <div className="guide-examples"><span>Try exploring</span><button onClick={() => startExploring('Claude')}>Claude tools</button><button onClick={() => startExploring('MCP')}>MCP servers</button><button onClick={() => startExploring('Automation')}>Automation</button><button onClick={browseRecentlyUpdated}>Recently updated <ArrowRight size={14}/></button></div>
       </section>}
-      <section className="browse-section" id="browse"><div className="browse-header"><div><span className="section-eyebrow">DISCOVER & EXPLORE</span><h2>Resource library</h2><p>Browse visual repository previews, find the right tools, and bookmark your favorites.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} available resources`}</div></div>
+      <section className="browse-section" id="browse">
+        <div className="browse-header"><div><span className="section-eyebrow">EXPLORE THE COLLECTION</span><h2>Browse the directory</h2><p>Choose a collection, narrow your results, and open the project on GitHub.</p></div><div className="browse-summary"><span className="tiny-dot"/> {catalogLoading ? 'Syncing with GitHub' : `${published.length.toLocaleString()} published resources`}</div></div>
+        <div className="directory-collection-tabs" role="group" aria-label="Browse resource collections">
+          {DIRECTORY_COLLECTIONS.map(item => <button type="button" key={item.id} className={collection === item.id && !favoritesOnly ? 'active' : ''} aria-pressed={collection === item.id && !favoritesOnly} onClick={() => chooseCollection(item.id)}>{item.label}<span>{collectionCounts[item.id].toLocaleString()}</span></button>)}
+          <button type="button" className={favoritesOnly ? 'active' : ''} aria-pressed={favoritesOnly} onClick={() => { chooseCollection('all'); setFavoritesOnly(true); }}><Heart size={15}/> My favorites <span>{favoriteCount.toLocaleString()}</span></button>
+        </div>
       {hashtagCounts.length > 0 && <section className="hashtag-discovery" aria-label="Browse popular hashtags">
         <div className="hashtag-discovery-heading">
           <div><span className="hashtag-eyebrow"><Sparkles size={15}/> DISCOVER BY TOPIC</span><h3>Explore hashtags</h3><p>Choose a topic to see matching repositories. Select it again to remove the filter.</p></div>
