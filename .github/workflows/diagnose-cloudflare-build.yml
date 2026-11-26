@@ -47,5 +47,7 @@ jobs:
         run: node --test tests/directory-layout-order.test.mjs
       - name: Verify admin review queue and live daily suggestions
         run: node --test tests/admin-discoveries-review.test.mjs
+      - name: Verify pending publishing approvals remain secure and discoverable
+        run: node --test tests/admin-publish-approval-gate.test.mjs
       - name: Build TypeScript and Vite
         run: npm run build

@@ -132,6 +132,12 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
   const added = newKeys.size;
   const updated = editedKeys.size;
   const removed = useMemo(() => publishedCatalog.filter(r => !draft.some(item => resourceKey(item.url) === resourceKey(r.url))).length, [draft, publishedCatalog]);
+  // Keep owner approval mandatory, but make the Save control actionable
+  // so it can explain and navigate to any outstanding review steps.
+  const canOpenSave = dirty && !busy && !checkingNew;
+  const saveLabel = pendingCount > 0
+    ? `Review ${pendingCount} pending before saving`
+    : `Save Changes to GitHub (${draft.length})`;
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();
     // New additions are always at the top, with the most recently staged first.
@@ -298,11 +304,15 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     const containsNew = restorable.some(r => !publishedByKey.has(resourceKey(r.url)));
     setDraft(restorable); setRestorable(null); setTab('resources'); setView(containsNew ? 'new' : 'all'); setPage(1); setMessage('Previous draft recovered. Please review before publishing.');
   };
+  const openPendingApprovals = () => {
+    setTab('resources'); setView('new'); setPage(1); setQuery(''); setSelected([]);
+    setMessage(`${pendingCount} new resource(s) need GitHub verification and approval. Select pending entries, check them on GitHub, and approve the checked entries. You can publish after all new entries are approved or removed.`);
+    window.setTimeout(() => document.querySelector('.approval-workflow')?.scrollIntoView({behavior:'smooth',block:'start'}),40);
+  };
   const publish = async () => {
     if (!dirty || busy || checkingNew) return;
     if (pendingCount) {
-      setTab('resources'); setView('new'); setPage(1);
-      setMessage(`${pendingCount} new resource(s) are not yet approved. Check and approve them, or remove them, before publishing.`);
+      openPendingApprovals();
       return;
     }
     if (!window.confirm(`Publish ${draft.length} resources to GitHub? This includes ${added} additions, ${updated} updates and ${removed} deletions.`)) return;
@@ -390,6 +400,7 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
         <div><strong>New repository approval</strong><p><b>1.</b> Import → <b>2.</b> Check GitHub → <b>3.</b> Approve. Publishing is a separate action.</p>
           <small>{pendingCount} awaiting approval · {checkedCount} checked and pending · {added - pendingCount} approved</small></div>
         <div className="approval-actions">
+          <button type="button" className="btn subtle small" disabled={checkingNew || !pendingCount} onClick={() => setSelected([...pendingKeys])}>1. Select pending ({pendingCount})</button>
           <button type="button" className="btn subtle small" disabled={checkingNew || !selected.some(k => newKeys.has(k))} onClick={() => void checkNewResources()}>{checkingNew ? <LoaderCircle className="spin" size={15}/> : <Search size={15}/>} {checkingNew ? 'Checking...' : '2. Check selected on GitHub'}</button>
           <button type="button" className="btn primary small" disabled={checkingNew || !selected.some(k => pendingKeys.has(k) && checks[k])} onClick={approveCheckedResources}><Check size={15}/> 3. Approve checked</button>
         </div>
@@ -411,9 +422,11 @@ export default function Admin({ publishedCatalog, onSaved, onBack }: Props) {
     </div>}
 
     {tab === 'publish' && <div className="hub-publish-account-note"><Github size={16}/> Publishing as <strong>{login || 'connected GitHub owner'}</strong>. Trouble publishing? <button type="button" onClick={() => navigateToAuth('login')}>Reconnect your GitHub account</button>.</div>}
-    {tab === 'publish' && <div className="workspace-panel publish-panel"><div className="publish-icon"><Github size={26}/></div><h2>Publish your resource catalog</h2><p>Review your pending changes, then save them directly to <strong>vakulkumarmore/ai-github-resource-hub</strong>. Your Cloudflare deployment will update the public website.</p><div className="publish-steps"><div><strong>{draft.length}</strong><span>Total resources</span></div><div><strong>+{added}</strong><span>New links</span></div><div><strong>{updated}</strong><span>Edits</span></div><div><strong>{removed}</strong><span>Deletions</span></div></div>{pendingCount > 0 && <div className="notice info-notice"><AlertCircle size={18}/> {pendingCount} newly imported resource(s) need GitHub checks and approval before publishing. Open Resource Manager → Newly added.</div>}{dirty ? <div className="notice info-notice"><AlertCircle size={18}/> You have unpublished changes.</div> : <div className="notice"><CheckCircle2 size={18}/> Your draft matches the published catalog.</div>}<div className="publish-actions"><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Download backup</button><button className="btn primary" disabled={!dirty || busy || checkingNew || pendingCount > 0} onClick={publish}>{busy ? <LoaderCircle className="spin" size={17}/> : <Save size={17}/>} {busy ? 'Publishing...' : `Save Changes to GitHub (${draft.length})`}</button></div><p className="publish-note">You can safely leave this page after a successful save. Cloudflare deployment and browser caching may take a short time.</p></div>}
+    {tab === 'publish' && <div className="workspace-panel publish-panel"><div className="publish-icon"><Github size={26}/></div><h2>Publish your resource catalog</h2><p>Review your pending changes, then save them directly to <strong>vakulkumarmore/ai-github-resource-hub</strong>. Your Cloudflare deployment will update the public website.</p><div className="publish-steps"><div><strong>{draft.length}</strong><span>Total resources</span></div><div><strong>+{added}</strong><span>New links</span></div><div><strong>{updated}</strong><span>Edits</span></div><div><strong>{removed}</strong><span>Deletions</span></div></div>{pendingCount > 0 && <div className="notice info-notice"><AlertCircle size={18}/><span>{pendingCount} newly imported resource(s) need GitHub checks and approval before publishing.</span><button type="button" className="btn subtle small" onClick={openPendingApprovals}>Review pending <ArrowRight size={14}/></button></div>}{dirty ? <div className="notice info-notice"><AlertCircle size={18}/> You have unpublished changes.</div> : <div className="notice"><CheckCircle2 size={18}/> Your draft matches the published catalog.</div>}<div className="publish-actions"><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Download backup</button><button className="btn primary" disabled={!canOpenSave} onClick={publish}>{busy ? <LoaderCircle className="spin" size={17}/> : <Save size={17}/>} {busy ? 'Publishing...' : saveLabel}</button></div><p className="publish-note">You can safely leave this page after a successful save. Cloudflare deployment and browser caching may take a short time.</p></div>}
 
-    <div className="publish-bar"><div><span className={dirty ? 'dirty-indicator' : 'clean-indicator'}/><strong>{dirty ? `${added} added · ${updated} edited · ${removed} deleted` : 'All changes published'}</strong><span>{draft.length} resources in catalog</span></div><div><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Backup</button><button className="btn primary" disabled={!dirty || busy || checkingNew || pendingCount > 0} onClick={publish}>{busy ? <LoaderCircle className="spin" size={16}/> : <Save size={16}/>} {busy ? 'Saving...' : `Save Changes to GitHub (${draft.length})`}</button></div></div>
+    <div className="publish-bar">
+      {pendingCount > 0 && <div className="publish-blocker" role="status"><AlertCircle size={17}/><span><strong>Save requires approval:</strong> {pendingCount} new resource{pendingCount === 1 ? '' : 's'} need GitHub verification and approval.</span><button type="button" onClick={openPendingApprovals}>Review pending <ArrowRight size={14}/></button></div>}
+      <div><span className={dirty ? 'dirty-indicator' : 'clean-indicator'}/><strong>{dirty ? `${added} added · ${updated} edited · ${removed} deleted` : 'All changes published'}</strong><span>{draft.length} resources in catalog</span></div><div><button className="btn subtle" onClick={() => downloadJSON(draft)}><Download size={16}/> Backup</button><button className="btn primary" disabled={!canOpenSave} onClick={publish}>{busy ? <LoaderCircle className="spin" size={16}/> : <Save size={16}/>} {busy ? 'Saving...' : saveLabel}</button></div></div>
   </main>;
 }
 
