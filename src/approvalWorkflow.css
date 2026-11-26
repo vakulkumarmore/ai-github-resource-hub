@@ -5,3 +5,17 @@
 .approval-actions{display:flex;gap:9px;flex-wrap:wrap}
 .approval-error{display:inline-block;padding:3px 7px;border-radius:7px;border:1px solid #e4ae6a;color:#a55e12;font-size:.75rem;font-weight:600}
 @media(max-width:650px){.approval-actions,.approval-actions button{width:100%}}
+
+
+/* Explain why publishing requires approval without hiding the Save action. */
+.publish-bar{flex-wrap:wrap}
+.publish-bar .publish-blocker{display:flex;flex:1 1 100%;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface-muted)}
+.publish-bar .publish-blocker svg{flex:0 0 auto}
+.publish-bar .publish-blocker span{flex:1 1 auto;color:var(--secondary);font-size:12px;line-height:1.5}
+.publish-bar .publish-blocker strong{font-size:12px;color:var(--text)}
+.publish-bar .publish-blocker button{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);padding:8px 10px;color:var(--accent);font-weight:750;font-size:11px}
+.publish-bar .publish-blocker button:hover{border-color:var(--accent)}
+@media(max-width:610px){
+  .publish-bar .publish-blocker{flex-wrap:wrap;gap:8px}
+  .publish-bar .publish-blocker button{width:100%}
+}
